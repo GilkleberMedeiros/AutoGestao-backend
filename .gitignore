@@ -6,5 +6,11 @@ dist/
 wheels/
 *.egg-info
 
+# Ruff & Pyright and other tools generated files
+*.ruff_cache/
+
+# Test/Local Databases
+*.sqlite3
+
 # Virtual environments
 .venv

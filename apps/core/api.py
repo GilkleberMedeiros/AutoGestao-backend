@@ -6,4 +6,4 @@ api = NinjaAPI()
 
 @api.get("/hello")
 def hello(request):
-    return {"message": "Hello, World!"}
+  return {"message": "Hello, World!"}
