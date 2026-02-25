@@ -74,8 +74,8 @@ class User(AbstractUser):
   id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
   name = models.CharField(max_length=128)
   username = None  # Remove the username field from AbstractUser
-  email = models.EmailField(unique=True)
-  phone = models.CharField(unique=True, blank=True, null=True)
+  email = models.EmailField(unique=True, max_length=256)
+  phone = models.CharField(max_length=24, unique=True, blank=True, null=True)
   # Implicitly inherit the password field from AbstractUser
   is_email_valid = models.BooleanField(default=False)
   is_phone_valid = models.BooleanField(default=False)
