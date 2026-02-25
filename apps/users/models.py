@@ -7,6 +7,15 @@ from uuid import uuid4
 
 
 class UserManager(DjangoUserManager):
+  @classmethod
+  def normalize_email(cls, email):
+    """
+    Lower-case all the email (not only domain part) and
+    strip left and right
+    """
+    email = super().normalize_email(email).lower().strip()
+    return email
+
   def _create_user_object(self, name, email, password, **extra_fields):
     if not name:
       raise ValueError("The given username must be set")
