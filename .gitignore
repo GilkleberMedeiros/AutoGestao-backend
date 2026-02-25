@@ -12,5 +12,9 @@ wheels/
 # Test/Local Databases
 *.sqlite3
 
+# Keys and credentials
+*.env
+*.pem
+
 # Virtual environments
 .venv

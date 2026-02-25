@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 
+from datetime import timedelta
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,6 +23,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-@ucp)l^9ls49gyg*-c&0x#(ao&2i0_%j73w@(vw9qg0kdgnrw1"
+
+JWT_PRIVKEY_PATH = BASE_DIR / "JWT_EC256_PRIVKEY.pem"
+JWT_PUBKEY_PATH = BASE_DIR / "JWT_EC256_PUBKEY.pem"
+
+with JWT_PRIVKEY_PATH.open("r") as f:
+  JWT_PRIVKEY = f.read()
+
+with JWT_PUBKEY_PATH.open("r") as f:
+  JWT_PUBKEY = f.read()
+
+SIMPLE_JWT = {
+  "ALGORITHM": "ES256",
+  "SIGNING_KEY": JWT_PRIVKEY,
+  "VERIFYING_KEY": JWT_PUBKEY,
+  "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+  "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
+}
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -39,6 +58,7 @@ INSTALLED_APPS = [
   "django.contrib.staticfiles",
   "apps.core",
   "apps.users",
+  "apps.authentication",
 ]
 
 MIDDLEWARE = [
