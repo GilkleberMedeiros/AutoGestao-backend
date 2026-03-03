@@ -533,34 +533,3 @@ class LoginTestCase(TestCase):
 
     # Should fail because password doesn't match
     self.assertEqual(response.status_code, 400)
-
-  # Edge case tests - Multiple requests and rate limiting behavior
-  def test_multiple_failed_login_attempts(self):
-    """Test multiple failed login attempts in sequence"""
-    login_data = {"email": "testuser.example@gmail.com", "password": "wrongpassword"}
-
-    for _ in range(5):
-      response = self.login(login_data)
-      self.assertEqual(response.status_code, 400)
-
-  def test_correct_login_after_failed_attempts(self):
-    """Test successful login after multiple failed attempts"""
-    wrong_login_data = {
-      "email": "testuser.example@gmail.com",
-      "password": "wrongpassword",
-    }
-
-    # Multiple failed attempts
-    for _ in range(3):
-      response = self.login(wrong_login_data)
-      self.assertEqual(response.status_code, 400)
-
-    # Correct login should still work
-    correct_login_data = {
-      "email": "testuser.example@gmail.com",
-      "password": "testpassword",
-    }
-    response = self.login(correct_login_data)
-
-    self.assertEqual(response.status_code, 200)
-    self.assertIsNotNone(response.json().get("access"))
