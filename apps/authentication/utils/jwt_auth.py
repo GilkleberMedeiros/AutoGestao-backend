@@ -1,7 +1,8 @@
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.conf import settings
 import jwt
 from typing import TypedDict
+
+from config import settings
 
 
 class TokenPair(TypedDict):
