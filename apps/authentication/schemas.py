@@ -9,6 +9,12 @@ class LoginReq(Schema):
   email: str = Field(max_length=256, min_length=5)
   password: str = Field(max_length=128, min_length=8)
 
+  @field_validator("email", mode="before")
+  def normalize_email(cls, v):
+    # Lower Case Email
+    if isinstance(v, str):
+      return v.lower()
+
 
 class RegisterReq(ModelSchema):
   password: str = Field(max_length=128, min_length=8)
