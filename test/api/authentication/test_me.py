@@ -3,60 +3,54 @@ Test API Logout Endpoint.
 """
 
 from django.http import HttpResponse
-from django.test import TestCase, Client
 import jwt
 import uuid
 from datetime import datetime, timedelta
 from django.utils.timezone import get_current_timezone
 
+from test.api.base import AuthenticatedTestCase, APIClient
 from apps.users.models import User
 from config import settings
 
 
-class LogoutTestCase(TestCase):
+class LogoutTestCase(AuthenticatedTestCase):
   URL = "/api/users/auth/me"
+
+  # Used by AuthenticatedTestCase
+  user_create_data = {
+    "name": "testuser",
+    "email": "testuser.example@gmail.com",
+    "password": "testpassword",
+    "phone": "5584000000000",
+  }
+  user_create_model = User
+
+  login_data = {"email": "testuser.example@gmail.com", "password": "testpassword"}
 
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-
-    # Create User
-    try:
-      cls.user = User.objects.create_user(
-        name="testuser",
-        email="testuser.example@gmail.com",
-        password="testpassword",
-        phone="5584000000000",
-      )
-    except Exception as e:
-      raise Exception(
-        f"Unknown exception while creating user for LoginTestCase!\nException: \n{e}"
-      )
+    super().setUpClassUser()
 
   def setUp(self):
-    self.client = Client()
+    super().setUp()
+    self.setUpAuth()
+    self.client = APIClient(path_prefix=self.URL)
     self.me = lambda headers, *args, **kwargs: self.client.get(
-      self.URL, headers=headers, content_type="application/json", *args, **kwargs
+      "", headers=headers, *args, **kwargs
     )
-
-    self.login_response = self.login()
-    self.credentials = self.get_jwt_credentials(self.login_response)
 
   def tearDown(self):
+    self.tearDownAuth()
     super().tearDown()
-    logout_res = self.client.get(
-      "/api/users/auth/logout", content_type="application/json"
-    )
-    if logout_res.status_code != 200:
-      raise Exception(
-        "Got unexpected response when trying to logout!\n"
-        f"Response data: {logout_res.json()}\nStatus code: {logout_res.status_code}"
-      )
-    self.credentials = None
-    self.login_response = None
 
     self.me = None
     self.client = None
+
+  @classmethod
+  def tearDownClass(cls):
+    cls.tearDownClassUser()
+    super().tearDownClass()
 
   def login(self):
     """Login to app and returns response."""

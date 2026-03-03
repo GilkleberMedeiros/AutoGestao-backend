@@ -3,7 +3,8 @@ Tests for APIClient.
 """
 
 from django.test import TestCase
-from test.api.base import APIClient
+from test.api.base import APIClient, APITestCase, JWTAuthenticatedTestCaseMixin
+from apps.users.models import User
 
 
 class APIClientTestCase(TestCase):
@@ -67,3 +68,68 @@ class APIClientTestCase(TestCase):
     from django.test import Client
 
     self.assertIsInstance(client, Client)
+
+
+class JWTAuthenticatedTestCaseMixinTestCase(TestCase):
+  """Test the JWTAuthenticatedTestCaseMixin functionality."""
+
+  @classmethod
+  def setUpClass(cls):
+    """Create a test user for authentication tests."""
+    super().setUpClass()
+    cls.test_user = User.objects.create_user(
+      name="testuser",
+      email="testuser@example.com",
+      password="testpassword123",
+      phone="5584999999999",
+    )
+
+  def test_jwt_mixin_has_correct_defaults(self):
+    """Verify JWTAuthenticatedTestCaseMixin has correct class attributes."""
+    self.assertEqual(JWTAuthenticatedTestCaseMixin.login_url, "/api/users/auth/login")
+    self.assertEqual(JWTAuthenticatedTestCaseMixin.logout_url, "/api/users/auth/logout")
+    self.assertIsNone(JWTAuthenticatedTestCaseMixin.login_data)
+
+  def test_extract_credentials_from_login_response(self):
+    """Verify _extract_credentials correctly extracts tokens."""
+    client = APIClient()
+    response = client.post(
+      "/api/users/auth/login",
+      {"email": "testuser@example.com", "password": "testpassword123"},
+    )
+
+    credentials = JWTAuthenticatedTestCaseMixin._extract_credentials(response)
+
+    self.assertIsInstance(credentials, dict)
+    self.assertIn("access", credentials)
+    self.assertIn("refresh", credentials)
+    self.assertIsNotNone(credentials["access"])
+    self.assertIsNotNone(credentials["refresh"])
+
+  def test_extract_credentials_returns_none_for_missing_tokens(self):
+    """Verify _extract_credentials handles missing tokens gracefully."""
+    from unittest.mock import Mock
+
+    # Create a mock response with no tokens
+    mock_response = Mock()
+    mock_response.json.return_value = {}
+    mock_response.cookies = {}
+
+    credentials = JWTAuthenticatedTestCaseMixin._extract_credentials(mock_response)
+
+    self.assertEqual(credentials["access"], None)
+    self.assertEqual(credentials["refresh"], None)
+
+  def test_api_test_case_client_is_api_client(self):
+    """Verify APITestCase uses APIClient with defaults."""
+
+    class DummyAPITestCase(APITestCase):
+      pass
+
+    test_case = DummyAPITestCase("__init__")
+    test_case._pre_setup()
+
+    self.assertIsInstance(test_case.client, APIClient)
+    self.assertEqual(test_case.client.content_type, "application/json")
+
+    test_case._post_teardown()
