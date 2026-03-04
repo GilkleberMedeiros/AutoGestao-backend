@@ -21,4 +21,8 @@ def unknown_exception_handler(request, exc: Exception):
   return api.create_response(request, res if not settings.DEBUG else exc, status=500)
 
 
+# Add test routes for testing purposes
+if settings.DEBUG:
+  api.add_router("test-routes/middlewares/", router="apps.core.test_routes.middlewares.router")
+
 api.add_router("users/auth/", router="apps.authentication.routes.router")
