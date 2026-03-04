@@ -196,6 +196,7 @@ class JWTAuthenticatedTestCaseMixin:
       )
 
     cls.credentials = cls._extract_credentials(cls.login_response)
+    cls.credentials["refresh"] = cls.credentials["refresh"].value
 
     if not cls.credentials.get("access"):
       raise AssertionError("Could not extract access token from login response")
