@@ -28,6 +28,7 @@ dependencies = [
     { name = "django" },
     { name = "django-ninja" },
     { name = "djangorestframework-simplejwt", extra = ["crypto"] },
+    { name = "redis" },
 ]
 
 [package.dev-dependencies]
@@ -40,6 +41,7 @@ requires-dist = [
     { name = "django", specifier = ">=6.0.2" },
     { name = "django-ninja", specifier = ">=1.5.3" },
     { name = "djangorestframework-simplejwt", extras = ["crypto"], specifier = ">=5.5.1" },
+    { name = "redis", specifier = ">=5.0.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -259,6 +261,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5c/5a/b46fa56bf322901eee5b0454a34343cdbdae202cd421775a8ee4e42fd519/pyjwt-2.11.0.tar.gz", hash = "sha256:35f95c1f0fbe5d5ba6e43f00271c275f7a1a4db1dab27bf708073b75318ea623", size = 98019, upload-time = "2026-01-30T19:59:55.694Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6f/01/c26ce75ba460d5cd503da9e13b21a33804d38c2165dec7b716d06b13010c/pyjwt-2.11.0-py3-none-any.whl", hash = "sha256:94a6bde30eb5c8e04fee991062b534071fd1439ef58d2adc9ccb823e7bcd0469", size = 28224, upload-time = "2026-01-30T19:59:54.539Z" },
+]
+
+[[package]]
+name = "redis"
+version = "7.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e9/31/1476f206482dd9bc53fdbbe9f6fbd5e05d153f18e54667ce839df331f2e6/redis-7.2.1.tar.gz", hash = "sha256:6163c1a47ee2d9d01221d8456bc1c75ab953cbda18cfbc15e7140e9ba16ca3a5", size = 4906735, upload-time = "2026-02-25T20:05:18.171Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/98/1dd1a5c060916cf21d15e67b7d6a7078e26e2605d5c37cbc9f4f5454c478/redis-7.2.1-py3-none-any.whl", hash = "sha256:49e231fbc8df2001436ae5252b3f0f3dc930430239bfeb6da4c7ee92b16e5d33", size = 396057, upload-time = "2026-02-25T20:05:16.533Z" },
 ]
 
 [[package]]
