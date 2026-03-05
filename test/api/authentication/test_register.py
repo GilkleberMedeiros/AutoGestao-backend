@@ -67,6 +67,24 @@ class RegisterTestCase(TestCase):
     self.assertTrue(user_created.check_password("SenhaJoao123@"))
     self.assertIsNone(user_created.phone)
 
+  def test_format_phone_number_as_nospaces_nosymbols(self):
+    """
+    Test if the phone number is formatted to a plain format with no spaces and no symbols.
+    """
+    userdata = {
+      "name": "João",
+      "email": "joao_email@gmail.com",
+      "password": "SenhaJoao123@",
+      "phone": "+55 (84) 99616-2398",
+    }
+
+    _ = self.register(userdata)
+    user_created = User.objects.filter(email="joao_email@gmail.com").first()
+
+    if not user_created:
+      self.fail("Couldn't find created user on Database!")
+    self.assertEqual(user_created.phone, "5584996162398")
+
   def test_returns_error_when_email_not_unique(self):
     userdata1 = {
       "name": "João",
