@@ -5,6 +5,8 @@ from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserMa
 
 from uuid import uuid4
 
+from apps.users.field_validators.phone import PhoneValidator
+
 
 class UserManager(DjangoUserManager):
   @classmethod
@@ -84,7 +86,9 @@ class User(AbstractUser):
   name = models.CharField(max_length=128)
   username = None  # Remove the username field from AbstractUser
   email = models.EmailField(unique=True, max_length=256)
-  phone = models.CharField(max_length=24, unique=True, blank=True, null=True)
+  phone = models.CharField(
+    max_length=24, unique=True, blank=True, null=True, validators=[PhoneValidator]
+  )
   # Implicitly inherit the password field from AbstractUser
   is_email_valid = models.BooleanField(default=False)
   is_phone_valid = models.BooleanField(default=False)
