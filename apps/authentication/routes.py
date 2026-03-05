@@ -90,22 +90,9 @@ def refresh(request: HttpRequest, response: HttpResponse):
 
 @router.get("/me", response={200: UserMeRes, 400: BaseAPIResponse})
 def me(request: HttpRequest, response: HttpResponse):
-  auth_header = request.headers.get("Authorization", "")
-  if not auth_header:
-    return 400, {"details": "Missing Authorization header", "success": False}
-
-  # Validate Authorization header format
-  if not auth_header.startswith("Bearer "):
-    return 400, {"details": "Invalid authorization header format", "success": False}
-
-  access_token = auth_header.replace("Bearer ", "")
-  decoded = JWTAuth.verify_token(access_token)
-  if not decoded:
-    return 400, {"details": "Invalid access token", "success": False}
-
-  try:
-    user = User.objects.get(id=decoded["user_id"])
-  except User.DoesNotExist:
+  user = request.user
+  if not user.is_authenticated:
     return 400, {"details": "User not found", "success": False}
+  user: User = user
 
   return 200, user
