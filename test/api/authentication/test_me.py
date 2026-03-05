@@ -1,5 +1,5 @@
 """
-Test API Logout Endpoint.
+Test API UserMe Endpoint.
 """
 
 from django.http import HttpResponse
@@ -13,7 +13,7 @@ from apps.users.models import User
 from config import settings
 
 
-class LogoutTestCase(AuthenticatedTestCase):
+class UserMeTestCase(AuthenticatedTestCase):
   URL = "/api/users/auth/me"
 
   # Used by AuthenticatedTestCase
