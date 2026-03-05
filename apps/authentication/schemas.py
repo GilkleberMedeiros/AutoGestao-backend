@@ -3,6 +3,7 @@ from pydantic import field_validator
 from pydantic_core import PydanticCustomError
 
 from apps.users.models import User
+from apps.core.validation.br_phone import BRPhoneValidator, InvalidPhoneError
 
 
 class LoginReq(Schema):
@@ -47,11 +48,21 @@ class RegisterReq(ModelSchema):
 
   @field_validator("phone", check_fields=False)
   def validate_phone(cls, v):
+    if not v:
+      return None
+
     if isinstance(v, str):
       v = v.strip()
 
     if v == "":
-      v = None  # Convert empty string to None for optional phone field
+      return None  # Convert empty string to None for optional phone field
+
+    try:
+      validator = BRPhoneValidator(v)
+    except ValueError, InvalidPhoneError:
+      raise PydanticCustomError("phone_invalid", "Invalid phone number")
+
+    v = validator.get_formated(format="FULLPLAIN")
     return v
 
 
