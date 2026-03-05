@@ -14,6 +14,23 @@ from pathlib import Path
 
 from datetime import timedelta
 
+from config.env import (
+  DEBUG as _DEBUG,
+  DEFAULT_DB,
+  DEFAULT_CACHE,
+  JWT_PRIVKEY_PATH as _JWT_PRIVKEY_PATH,
+  JWT_PUBKEY_PATH as _JWT_PUBKEY_PATH,
+  JWT_ALGO,
+  JWT_ACCESS_LIFETIME,
+  JWT_REFRESH_LIFETIME,
+  EMAIL_HOST as _EMAIL_HOST,
+  EMAIL_PORT as _EMAIL_PORT,
+  EMAIL_USE_TLS as _EMAIL_USE_TLS,
+  EMAIL_HOST_USER as _EMAIL_HOST_USER,
+  EMAIL_HOST_PASSWORD as _EMAIL_HOST_PASSWORD,
+  DEFAULT_FROM_EMAIL as _DEFAULT_FROM_EMAIL,
+)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,8 +41,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-@ucp)l^9ls49gyg*-c&0x#(ao&2i0_%j73w@(vw9qg0kdgnrw1"
 
-JWT_PRIVKEY_PATH = BASE_DIR / "JWT_EC256_PRIVKEY.pem"
-JWT_PUBKEY_PATH = BASE_DIR / "JWT_EC256_PUBKEY.pem"
+JWT_PRIVKEY_PATH = BASE_DIR / _JWT_PRIVKEY_PATH
+JWT_PUBKEY_PATH = BASE_DIR / _JWT_PUBKEY_PATH
 
 with JWT_PRIVKEY_PATH.open("r") as f:
   JWT_PRIVKEY = f.read()
@@ -34,15 +51,15 @@ with JWT_PUBKEY_PATH.open("r") as f:
   JWT_PUBKEY = f.read()
 
 SIMPLE_JWT = {
-  "ALGORITHM": "ES256",
+  "ALGORITHM": JWT_ALGO,
   "SIGNING_KEY": JWT_PRIVKEY,
   "VERIFYING_KEY": JWT_PUBKEY,
-  "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-  "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
+  "ACCESS_TOKEN_LIFETIME": timedelta(minutes=JWT_ACCESS_LIFETIME),
+  "REFRESH_TOKEN_LIFETIME": timedelta(minutes=JWT_REFRESH_LIFETIME),
 }
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _DEBUG
 
 ALLOWED_HOSTS = []
 
@@ -77,7 +94,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
   {
     "BACKEND": "django.template.backends.django.DjangoTemplates",
-    "DIRS": [],
+    "DIRS": [BASE_DIR / "templates"],
     "APP_DIRS": True,
     "OPTIONS": {
       "context_processors": [
@@ -95,19 +112,9 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-  "default": {
-    "ENGINE": "django.db.backends.sqlite3",
-    "NAME": BASE_DIR / "db.sqlite3",
-  }
-}
+DATABASES = {"default": DEFAULT_DB}
 
-CACHES = {
-  "default": {
-    "BACKEND": "django.core.cache.backends.redis.RedisCache",
-    "LOCATION": "redis://127.0.0.1:6379",
-  }
-}
+CACHES = {"default": DEFAULT_CACHE}
 
 AUTH_USER_MODEL = "users.User"
 
@@ -129,6 +136,15 @@ AUTH_PASSWORD_VALIDATORS = [
     "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
   },
 ]
+
+# Email Settings
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = _EMAIL_HOST
+EMAIL_PORT = _EMAIL_PORT
+EMAIL_USE_TLS = _EMAIL_USE_TLS
+EMAIL_HOST_USER = _EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = _EMAIL_HOST_PASSWORD
+DEFAULT_FROM_EMAIL = _DEFAULT_FROM_EMAIL
 
 
 # Internationalization
