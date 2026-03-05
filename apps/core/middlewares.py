@@ -33,6 +33,7 @@ class BaseMiddleware(ABC):
 class JWTAuthenticationMiddleware(BaseMiddleware):
   authenticate_routes = [
     r"^/?api/test-routes/middlewares/jwt-auth-middleware/?$",  # Test route to test this middleware.
+    r"^/?api/users/auth/me?$",
   ]
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):
@@ -48,9 +49,13 @@ class JWTAuthenticationMiddleware(BaseMiddleware):
         break
 
     # If got a listed route match try to get token
-    access_token = ""
+    auth_header = ""
     if match_route:
-      access_token = request.headers.get("Authorization", "").replace("Bearer ", "")
+      auth_header = request.headers.get("Authorization", "")
+
+    access_token = ""
+    if auth_header and auth_header.startswith("Bearer "):
+      access_token = auth_header.replace("Bearer ", "")
 
     try:
       token_value = JWTAuth.verify_token(access_token)
