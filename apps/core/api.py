@@ -23,6 +23,9 @@ def unknown_exception_handler(request, exc: Exception):
 
 # Add test routes for testing purposes
 if settings.DEBUG:
-  api.add_router("test-routes/middlewares/", router="apps.core.test_routes.middlewares.router")
+  api.add_router(
+    "test-routes/middlewares/", router="apps.core.test_routes.middlewares.router"
+  )
 
-api.add_router("users/auth/", router="apps.authentication.routes.router")
+api.add_router("users/auth/", router="apps.authentication.routes.auth.router")
+api.add_router("users/validate/", router="apps.authentication.routes.validate.router")

@@ -34,6 +34,7 @@ class JWTAuthenticationMiddleware(BaseMiddleware):
   authenticate_routes = [
     r"^/?api/test-routes/middlewares/jwt-auth-middleware/?$",  # Test route to test this middleware.
     r"^/?api/users/auth/me?$",
+    r"^/?api/users/validate/.*$",
   ]
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):

@@ -6,8 +6,11 @@ from datetime import datetime
 from apps.core.schemas.response import BaseAPIResponse
 from config.settings import SIMPLE_JWT
 from apps.users.models import User
-from .schemas import LoginReq, RegisterReq, UserMeRes, AccessTokenRes
-from .utils.jwt_auth import JWTAuth
+from apps.authentication.schemas import LoginReq, RegisterReq, UserMeRes, AccessTokenRes
+from apps.authentication.utils.jwt_auth import JWTAuth
+from apps.authentication.lib.email_valiation_manager.manager import (
+  EmailValidationManager,
+)
 
 
 router = Router()
@@ -39,6 +42,10 @@ def login(request: HttpRequest, response: HttpResponse, body: LoginReq):
   response={201: BaseAPIResponse, 400: BaseAPIResponse, 500: BaseAPIResponse},
 )
 def register(request: HttpRequest, response: HttpResponse, body: RegisterReq):
+  """
+  Register a new user.
+  Try sending an validation email for user immediately after registration.
+  """
 
   # Validate email is unique
   if User.objects.filter(email=body.email).exists():
@@ -49,7 +56,7 @@ def register(request: HttpRequest, response: HttpResponse, body: RegisterReq):
     return 400, {"details": "Phone already exists", "success": False}
 
   try:
-    User.objects.create_user(
+    user = User.objects.create_user(
       name=body.name,
       email=body.email,
       password=body.password,
@@ -58,7 +65,21 @@ def register(request: HttpRequest, response: HttpResponse, body: RegisterReq):
   except Exception as _:
     return 500, {"details": "Unknow Error when creating user", "success": False}
 
-  return 201, {"details": "User created successfully", "success": True}
+  # Send validation email for user immediately after registration
+  try:
+    EmailValidationManager.send_validation_email(request, user)
+  except Exception as _:
+    return 201, {
+      "details": "User created successfully! "
+      "But failed to send validation email. "
+      "Request an email validation attempt.",
+      "success": True,
+    }
+
+  return 201, {
+    "details": "User created successfully! Sent Validation Email.",
+    "success": True,
+  }
 
 
 @router.get("/logout", response={200: BaseAPIResponse})

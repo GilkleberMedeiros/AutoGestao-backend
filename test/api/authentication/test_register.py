@@ -167,6 +167,37 @@ class RegisterTestCase(TestCase):
 
     self.assertEqual(users_created.count(), 1)
 
+  @patch("apps.authentication.routes.auth.EmailValidationManager.send_validation_email")
+  def test_calls_email_validation_manager_on_success(self, mock_send_email):
+    userdata = {
+      "name": "João",
+      "email": "joao_email@gmail.com",
+      "password": "SenhaJoao123@",
+      "phone": "5584900000000",
+    }
+
+    _ = self.register(userdata)
+
+    self.assertTrue(mock_send_email.called)
+    self.assertEqual(mock_send_email.call_count, 1)
+
+  @patch("apps.authentication.routes.auth.EmailValidationManager.send_validation_email")
+  def test_returns_success_when_email_service_fails(self, mock_send_email):
+    userdata = {
+      "name": "João",
+      "email": "joao_email@gmail.com",
+      "password": "SenhaJoao123@",
+      "phone": "5584900000000",
+    }
+    mock_send_email.side_effect = Exception("Email service is down!")
+
+    response = self.register(userdata)
+    response_data = response.json()
+
+    self.assertEqual(response.status_code, 201)
+    self.assertTrue(response_data.get("success"))
+    self.assertIsNotNone(response_data.get("details", None))
+
   @patch("apps.users.models.User.objects.create_user")
   def test_returns_error_when_database_fails(self, mock_create):
     userdata = {
