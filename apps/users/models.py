@@ -98,5 +98,12 @@ class User(AbstractUser):
 
   objects = UserManager()
 
+  def validate_email(self):
+    """
+    Update is_email_valid field to True.
+    """
+    self.is_email_valid = True
+    self.save()
+
   def __str__(self):
     return self.email

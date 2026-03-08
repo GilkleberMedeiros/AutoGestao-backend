@@ -1,0 +1,8 @@
+<h1>Validação de Email</h1>
+<p>Por favor, copie e cole o código à seguir no aplicativo para validar seu email:</p>
+<p>{{ validation_token }}</p>
+{% if validation_token_timeout %}
+<p>O código expirará em {{ validation_token_timeout }} minutos.</p>
+{% endif %}
+<p>Atenciosamente,</p>
+<p>AutoGestão</p>

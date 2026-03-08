@@ -146,6 +146,9 @@ EMAIL_HOST_USER = _EMAIL_HOST_USER
 EMAIL_HOST_PASSWORD = _EMAIL_HOST_PASSWORD
 DEFAULT_FROM_EMAIL = _DEFAULT_FROM_EMAIL
 
+# Contacts Info Validation Settings
+EMAIL_VALIDATION_TOKEN_LIFETIME = timedelta(minutes=30)
+EMAIL_VALIDATION_TEMPLATE = "emails/validation.html"
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
