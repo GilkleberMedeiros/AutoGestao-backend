@@ -57,10 +57,12 @@ class JWTAuthenticationMiddleware(BaseMiddleware):
     if auth_header and auth_header.startswith("Bearer "):
       access_token = auth_header.replace("Bearer ", "")
 
-    try:
-      token_value = JWTAuth.verify_token(access_token)
-    except Exception:
-      return self.get_response(request)
+    token_value = None
+    if access_token:
+      try:
+        token_value = JWTAuth.verify_token(access_token)
+      except Exception:
+        pass
 
     userid = None
     if token_value:
