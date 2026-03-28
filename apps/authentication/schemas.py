@@ -69,7 +69,7 @@ class RegisterReq(ModelSchema):
 class UserMeRes(ModelSchema):
   class Meta:
     model = User
-    fields = ["id", "name", "email", "phone"]
+    fields = ["id", "name", "email", "phone", "is_email_valid", "is_phone_valid"]
 
 
 class AccessTokenRes(Schema):

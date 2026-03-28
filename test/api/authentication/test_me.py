@@ -107,6 +107,9 @@ class UserMeTestCase(AuthenticatedTestCase):
     self.assertIsNotNone(response_data.get("name", None))
     self.assertIsNotNone(response_data.get("email", None))
     self.assertIsNotNone(response_data.get("phone", None))
+    self.assertIn("is_email_valid", response_data)
+    self.assertIn("is_phone_valid", response_data)
+
 
   def test_get_correct_user_data(self):
     access_token = self.credentials["access"]
@@ -120,6 +123,8 @@ class UserMeTestCase(AuthenticatedTestCase):
     self.assertEqual(self.user.name, response_data.get("name", None))
     self.assertEqual(self.user.email, response_data.get("email", None))
     self.assertEqual(self.user.phone, response_data.get("phone", None))
+    self.assertEqual(self.user.is_email_valid, response_data.get("is_email_valid", None))
+    self.assertEqual(self.user.is_phone_valid, response_data.get("is_phone_valid", None))
 
   def test_returns_error_response_on_invalid_access_token(self):
     # Send an invalid/malformed access token
