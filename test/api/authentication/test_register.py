@@ -167,7 +167,7 @@ class RegisterTestCase(TestCase):
 
     self.assertEqual(users_created.count(), 1)
 
-  @patch("apps.authentication.routes.auth.EmailValidationManager.send_validation_email")
+  @patch("apps.authentication.routes.auth.EmailValidationService.send_validation_email")
   def test_calls_email_validation_manager_on_success(self, mock_send_email):
     userdata = {
       "name": "João",
@@ -181,7 +181,7 @@ class RegisterTestCase(TestCase):
     self.assertTrue(mock_send_email.called)
     self.assertEqual(mock_send_email.call_count, 1)
 
-  @patch("apps.authentication.routes.auth.EmailValidationManager.send_validation_email")
+  @patch("apps.authentication.routes.auth.EmailValidationService.send_validation_email")
   def test_returns_success_when_email_service_fails(self, mock_send_email):
     userdata = {
       "name": "João",

@@ -8,9 +8,7 @@ from config.settings import SIMPLE_JWT
 from apps.users.models import User
 from apps.authentication.schemas import LoginReq, RegisterReq, UserMeRes, AccessTokenRes
 from apps.authentication.utils.jwt_auth import JWTAuth
-from apps.authentication.lib.email_valiation_manager.manager import (
-  EmailValidationManager,
-)
+from apps.authentication.services.email_validation import EmailValidationService
 
 
 router = Router()
@@ -67,7 +65,7 @@ def register(request: HttpRequest, response: HttpResponse, body: RegisterReq):
 
   # Send validation email for user immediately after registration
   try:
-    EmailValidationManager.send_validation_email(request, user)
+    EmailValidationService.send_validation_email(request, user)
   except Exception as _:
     return 201, {
       "details": "User created successfully! "

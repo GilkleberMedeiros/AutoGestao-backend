@@ -11,7 +11,7 @@ from apps.users.models import User
 from apps.core.exceptions import ExternalServiceError
 
 
-class EmailValidationManager:
+class EmailValidationService:
   """
   Manage Email Validation process.
   Send validation email to user email and validate it.

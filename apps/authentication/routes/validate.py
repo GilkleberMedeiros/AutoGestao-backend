@@ -7,9 +7,7 @@ from django.http import HttpRequest
 
 from apps.core.schemas.response import BaseAPIResponse
 from apps.core.exceptions import ExternalServiceError
-from apps.authentication.lib.email_valiation_manager.manager import (
-  EmailValidationManager,
-)
+from apps.authentication.services.email_validation import EmailValidationService
 from apps.users.models import User
 
 router = Router(
@@ -29,7 +27,7 @@ def request_email_validation(request: HttpRequest):
   if user.is_email_valid:
     return 200, {"details": "User email is already validated.", "success": True}
 
-  validation_manager = EmailValidationManager()
+  validation_manager = EmailValidationService()
 
   try:
     _ = validation_manager.send_validation_email(request, user)
@@ -51,7 +49,7 @@ def validate_email(request: HttpRequest, validation_token: str):
   if user.is_email_valid:
     return 200, {"details": "User email is already validated.", "success": True}
 
-  validation_manager = EmailValidationManager()
+  validation_manager = EmailValidationService()
 
   try:
     token_valid = validation_manager.validate_user_email(user, validation_token)

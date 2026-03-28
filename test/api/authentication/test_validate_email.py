@@ -4,7 +4,7 @@ from test.api.base import AuthenticatedTestCase
 from apps.users.models import User
 
 
-@patch("apps.authentication.routes.validate.EmailValidationManager")
+@patch("apps.authentication.routes.validate.EmailValidationService")
 class TestValidateEmail(AuthenticatedTestCase):
   TEST_URL = "/api/users/validate/email/"
 
