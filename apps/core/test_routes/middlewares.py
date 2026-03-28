@@ -19,3 +19,16 @@ def test_jwt_auth_middleware(request: HttpRequest):
     return 400, {"details": "not-authenticated", "success": False}
 
   return 200, {"details": f"authenticated-{request.user.id}", "success": True}
+
+
+@router.get(
+  "valid-email-permission-middleware/",
+  response={200: BaseAPIResponse, 400: BaseAPIResponse},
+)
+def test_valid_email_permission_middleware(request: HttpRequest):
+  if not request.user.is_authenticated:
+    return 400, {"details": "not-authenticated", "success": False}
+  if not request.user.is_email_valid:
+    return 400, {"details": "email-not-valid", "success": False}
+
+  return 200, {"details": f"email-valid-{request.user.id}", "success": True}

@@ -87,6 +87,7 @@ MIDDLEWARE = [
   "django.contrib.messages.middleware.MessageMiddleware",
   "django.middleware.clickjacking.XFrameOptionsMiddleware",
   "apps.core.middlewares.JWTAuthenticationMiddleware",
+  "apps.core.middlewares.ValidEmailPermissionMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

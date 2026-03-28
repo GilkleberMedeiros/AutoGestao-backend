@@ -1,8 +1,9 @@
 from django.http import HttpRequest, HttpResponse
 
 from abc import ABC, abstractmethod
-from typing import Callable, Any
+from typing import Callable, Any, AnyStr
 import re
+import json
 
 from apps.authentication.utils.jwt_auth import JWTAuth
 from apps.users.models import User
@@ -30,9 +31,32 @@ class BaseMiddleware(ABC):
     return response
 
 
-class JWTAuthenticationMiddleware(BaseMiddleware):
+class RegexMiddlewareMixin:
+  @staticmethod
+  def get_routes_match(routes: list[str], path: str) -> list[re.Match[AnyStr]]:
+    matchs = []
+
+    for route in routes:
+      m = re.match(route, path)
+      if m:
+        matchs.append(m)
+
+    return matchs
+
+  @staticmethod
+  def get_first_route_match(routes: list[str], path: str) -> re.Match[AnyStr] | None:
+    for route in routes:
+      m = re.match(route, path)
+      if m:
+        return m
+
+    return None
+
+
+class JWTAuthenticationMiddleware(BaseMiddleware, RegexMiddlewareMixin):
   authenticate_routes = [
     r"^/?api/test-routes/middlewares/jwt-auth-middleware/?$",  # Test route to test this middleware.
+    r"^/?api/test-routes/middlewares/valid-email-permission-middleware/?$",
     r"^/?api/users/auth/me?$",
     r"^/?api/users/validate/.*$",
   ]
@@ -42,12 +66,7 @@ class JWTAuthenticationMiddleware(BaseMiddleware):
 
   def __call__(self, request: HttpRequest) -> HttpResponse:
     path = request.path
-    match_route = None
-    for route in self.authenticate_routes:
-      m = re.match(route, path)
-      if m:
-        match_route = m
-        break
+    match_route = self.get_first_route_match(self.authenticate_routes, path)
 
     # If got a listed route match try to get token
     auth_header = ""
@@ -78,6 +97,46 @@ class JWTAuthenticationMiddleware(BaseMiddleware):
 
     if user:
       request.user = user
+
+    response = self.get_response(request)
+
+    return response
+
+
+class ValidEmailPermissionMiddleware(BaseMiddleware, RegexMiddlewareMixin):
+  """
+  This middleware checks if the user's email is valid.
+  If the user's email is not valid, it will return a 400 response.
+  This middleware also expect the user to be already authenticated.
+  """
+
+  valid_email_routes = [
+    r"^/?api/test-routes/middlewares/valid-email-permission-middleware/?$",  # Test route to test this middleware.
+  ]
+
+  def __init__(self, get_response: Callable[[Any], HttpResponse]):
+    self.get_response = get_response
+
+  def __call__(self, request: HttpRequest) -> HttpResponse:
+    path = request.path
+    match_route = self.get_first_route_match(self.valid_email_routes, path)
+
+    if match_route:
+      user = request.user
+      if not user.is_authenticated:
+        return HttpResponse(
+          content=json.dumps({"details": "User not authenticated", "success": False}),
+          status=401,
+          content_type="application/json"
+        )
+      if not user.is_email_valid:
+        return HttpResponse(
+          content=json.dumps(
+            {"details": "User email not valid. Permission rejected.", "success": False}
+          ),
+          status=403,
+          content_type="application/json"
+        )
 
     response = self.get_response(request)
 
