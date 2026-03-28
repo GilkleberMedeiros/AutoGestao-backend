@@ -6,6 +6,12 @@ Projeto de Aplicativo mobile com backend (self-developed) para gerenciamento de 
 ## Comandos
 ### Rodar a aplicação em desenvolvimento
 ```bash
+# Antes de iniciar a API, rode
+uv run manage.py makemigrations 
+# e
+uv run manage.py migrate
+# para criar as mais novas migrações e aplicar no banco de dados
+
 uv run manage.py runserver
 ```
 
