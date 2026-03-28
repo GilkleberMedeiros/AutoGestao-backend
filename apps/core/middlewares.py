@@ -57,6 +57,7 @@ class JWTAuthenticationMiddleware(BaseMiddleware, RegexMiddlewareMixin):
   authenticate_routes = [
     r"^/?api/test-routes/middlewares/jwt-auth-middleware/?$",  # Test route to test this middleware.
     r"^/?api/test-routes/middlewares/valid-email-permission-middleware/?$",
+    r"^/?api/users/?$",
     r"^/?api/users/auth/me?$",
     r"^/?api/users/validate/.*$",
   ]
@@ -127,7 +128,7 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, RegexMiddlewareMixin):
         return HttpResponse(
           content=json.dumps({"details": "User not authenticated", "success": False}),
           status=401,
-          content_type="application/json"
+          content_type="application/json",
         )
       if not user.is_email_valid:
         return HttpResponse(
@@ -135,7 +136,7 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, RegexMiddlewareMixin):
             {"details": "User email not valid. Permission rejected.", "success": False}
           ),
           status=403,
-          content_type="application/json"
+          content_type="application/json",
         )
 
     response = self.get_response(request)
