@@ -76,7 +76,7 @@ INSTALLED_APPS = [
   "apps.core",
   "apps.users",
   "apps.authentication",
-  "apps.projectsAndClients",
+  "apps.projects_and_clients",
 ]
 
 MIDDLEWARE = [
