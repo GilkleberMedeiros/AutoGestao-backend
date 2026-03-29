@@ -19,13 +19,17 @@ class Client(models.Model):
 
 class ClientPhone(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-  client = models.ForeignKey(Client, on_delete=models.CASCADE)
+  client = models.ForeignKey(
+    Client, on_delete=models.CASCADE, related_name="phones", related_query_name="phone"
+  )
   phone = models.CharField(max_length=24, validators=[PhoneValidator])
 
 
 class ClientEmail(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-  client = models.ForeignKey(Client, on_delete=models.CASCADE)
+  client = models.ForeignKey(
+    Client, on_delete=models.CASCADE, related_name="emails", related_query_name="email"
+  )
   email = models.EmailField(max_length=256)
 
 
@@ -45,14 +49,21 @@ class ClientRating(models.Model):
   ]
 
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-  client = models.OneToOneField(Client, on_delete=models.CASCADE)
+  client = models.OneToOneField(
+    Client, on_delete=models.CASCADE, related_name="rating", related_query_name="rating"
+  )
   score = models.FloatField(choices=RATING_CHOICES)
   comment = models.TextField(max_length=255, null=True, blank=True)
 
 
 class ClientAddress(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-  client = models.OneToOneField(Client, on_delete=models.CASCADE)
+  client = models.OneToOneField(
+    Client,
+    on_delete=models.CASCADE,
+    related_name="address",
+    related_query_name="address",
+  )
   state = models.CharField(max_length=2)
   city = models.CharField(max_length=255)
   neighborhood = models.CharField(max_length=255)

@@ -135,10 +135,10 @@ class TestClientService_Create(TestCase):
 
     self.assertEqual(client.name, "Full Client Param")
     self.assertEqual(client.user, self.user)
-    self.assertEqual(client.clientemail_set.count(), 2)
-    self.assertEqual(client.clientphone_set.count(), 1)
-    self.assertTrue(hasattr(client, "clientaddress"))
-    self.assertTrue(hasattr(client, "clientrating"))
+    self.assertEqual(client.emails.count(), 2)
+    self.assertEqual(client.phones.count(), 1)
+    self.assertTrue(hasattr(client, "address"))
+    self.assertTrue(hasattr(client, "rating"))
 
   def test_create_success_full_data_with_user_in_data(self):
     """create method successfully creates and returns client when receiving full data with user within it."""
@@ -153,8 +153,8 @@ class TestClientService_Create(TestCase):
 
     self.assertEqual(client.name, "Full Client Data")
     self.assertEqual(client.user, self.user)
-    self.assertEqual(client.clientemail_set.count(), 1)
-    self.assertEqual(client.clientphone_set.count(), 1)
+    self.assertEqual(client.emails.count(), 1)
+    self.assertEqual(client.phones.count(), 1)
 
   def test_create_success_minimum_data_with_user_param(self):
     """create method successfully creates and returns client when receiving minimum data and user as param."""
@@ -163,10 +163,10 @@ class TestClientService_Create(TestCase):
 
     self.assertEqual(client.name, "Min Client")
     self.assertEqual(client.user, self.user)
-    self.assertEqual(client.clientemail_set.count(), 0)
-    self.assertEqual(client.clientphone_set.count(), 0)
-    self.assertFalse(hasattr(client, "clientaddress"))
-    self.assertFalse(hasattr(client, "clientrating"))
+    self.assertEqual(client.emails.count(), 0)
+    self.assertEqual(client.phones.count(), 0)
+    self.assertFalse(hasattr(client, "address"))
+    self.assertFalse(hasattr(client, "rating"))
 
   def test_create_failure_without_user(self):
     """create method fails if no user is provided as param or in data."""
@@ -227,10 +227,10 @@ class TestClientService_Update(TestCase):
     updated = ClientService.update(str(self.client_obj.id), data, user=self.user)
 
     self.assertEqual(updated.name, "Updated Name")
-    self.assertEqual(updated.clientemail_set.count(), 2)
-    self.assertEqual(updated.clientphone_set.count(), 1)
-    self.assertEqual(updated.clientaddress.city, "New City")
-    self.assertEqual(updated.clientrating.score, 5.0)
+    self.assertEqual(updated.emails.count(), 2)
+    self.assertEqual(updated.phones.count(), 1)
+    self.assertEqual(updated.address.city, "New City")
+    self.assertEqual(updated.rating.score, 5.0)
 
   def test_update_success_no_user_param(self):
     """update method successfully updates and return updated client model when not parsing user."""
@@ -257,10 +257,10 @@ class TestClientService_Update(TestCase):
     updated = ClientService.update(str(self.client_obj.id), data, user=self.user)
     self.assertEqual(updated.name, "Rest of Fields will be Deleted")
     # Nestings should be Deleted
-    self.assertEqual(updated.clientemail_set.count(), 0)
-    self.assertEqual(updated.clientphone_set.count(), 0)
-    self.assertFalse(hasattr(updated, "clientaddress"))
-    self.assertFalse(hasattr(updated, "clientrating"))
+    self.assertEqual(updated.emails.count(), 0)
+    self.assertEqual(updated.phones.count(), 0)
+    self.assertFalse(hasattr(updated, "address"))
+    self.assertFalse(hasattr(updated, "rating"))
 
   def test_update_replaces_and_deletes_nested_collections(self):
     """
@@ -278,10 +278,10 @@ class TestClientService_Update(TestCase):
     }
     updated = ClientService.update(str(self.client_obj.id), data, user=self.user)
     self.assertEqual(updated.name, "Deleted Collections")
-    self.assertEqual(updated.clientemail_set.count(), 0)
-    self.assertEqual(updated.clientphone_set.count(), 0)
-    self.assertFalse(hasattr(updated, "clientaddress"))
-    self.assertTrue(hasattr(updated, "clientrating"))
+    self.assertEqual(updated.emails.count(), 0)
+    self.assertEqual(updated.phones.count(), 0)
+    self.assertFalse(hasattr(updated, "address"))
+    self.assertTrue(hasattr(updated, "rating"))
 
   def test_update_fails_invalid_client_id(self):
     """update method fails to update client model when client_id is invalid."""
@@ -351,10 +351,10 @@ class TestClientService_PartialUpdate(TestCase):
     self.assertEqual(updated.name, "Only Name Partial Update")
 
     # Assert nestings are intact
-    self.assertEqual(updated.clientemail_set.count(), 1)
-    self.assertEqual(updated.clientphone_set.count(), 1)
-    self.assertTrue(hasattr(updated, "clientaddress"))
-    self.assertTrue(hasattr(updated, "clientrating"))
+    self.assertEqual(updated.emails.count(), 1)
+    self.assertEqual(updated.phones.count(), 1)
+    self.assertTrue(hasattr(updated, "address"))
+    self.assertTrue(hasattr(updated, "rating"))
 
   def test_partial_update_erases_nested_collection_when_none_or_empty(self):
     """partial_update method only erases a nested collection if it is explicitly specified within data as none or empty data."""
@@ -368,11 +368,11 @@ class TestClientService_PartialUpdate(TestCase):
     )
 
     self.assertEqual(updated.name, "Original Name")  # Main data shouldn't change
-    self.assertEqual(updated.clientemail_set.count(), 0)  # erased
-    self.assertFalse(hasattr(updated, "clientrating"))  # erased
+    self.assertEqual(updated.emails.count(), 0)  # erased
+    self.assertFalse(hasattr(updated, "rating"))  # erased
 
-    self.assertEqual(updated.clientphone_set.count(), 1)  # intact
-    self.assertTrue(hasattr(updated, "clientaddress"))  # intact
+    self.assertEqual(updated.phones.count(), 1)  # intact
+    self.assertTrue(hasattr(updated, "address"))  # intact
 
   def test_partial_update_updates_only_non_required_data(self):
     """partial_update method can update only non-required data like nested collections."""
@@ -395,8 +395,8 @@ class TestClientService_PartialUpdate(TestCase):
     self.assertEqual(updated.cpf, "11111111111")
 
     # Updated nested fields
-    self.assertEqual(updated.clientphone_set.count(), 2)
-    self.assertEqual(updated.clientaddress.city, "New City")
+    self.assertEqual(updated.phones.count(), 2)
+    self.assertEqual(updated.address.city, "New City")
 
   def test_partial_update_fails_invalid_client_id(self):
     with self.assertRaises(Http404):
@@ -452,6 +452,6 @@ class TestClientService_Delete(TestCase):
     """delete method fails when user does not own the client."""
     with self.assertRaises(Http404):
       ClientService.delete(str(self.client_obj.id), user=self.other_user)
-    
+
     # Verify it still exists in the DB
     self.assertTrue(Client.objects.filter(id=self.client_obj.id).exists())
