@@ -8,19 +8,19 @@ from apps.projects_and_clients.models import (
 
 
 class ClientRatingClientSchema(ModelSchema):
-  class Config:
+  class Meta:
     model = ClientRating
     fields = ["score", "comment"]
 
 
 class ClientAddressClientSchema(ModelSchema):
-  class Config:
+  class Meta:
     model = ClientAddress
     fields = ["state", "city", "neighborhood", "street", "house_number", "complement"]
 
 
 class ClientSchema(ModelSchema):
-  class Config:
+  class Meta:
     model = Client
     fields = ["id", "user", "name", "cpf"]
 
@@ -31,7 +31,7 @@ class ClientSchema(ModelSchema):
 
 
 class CreateClientReq(ModelSchema):
-  class Config:
+  class Meta:
     model = Client
     fields = ["name", "cpf"]
 
@@ -42,7 +42,7 @@ class CreateClientReq(ModelSchema):
 
 
 class UpdateClientReq(ModelSchema):
-  class Config:
+  class Meta:
     model = Client
     fields = ["name", "cpf"]
 
@@ -53,7 +53,7 @@ class UpdateClientReq(ModelSchema):
 
 
 class PartialUpdateClientReq(ModelSchema):
-  class Config:
+  class Meta:
     model = Client
     fields = ["name", "cpf"]
     fields_optional = "__all__"
