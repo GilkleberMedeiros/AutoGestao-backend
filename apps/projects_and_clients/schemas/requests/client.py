@@ -22,7 +22,7 @@ class ClientAddressClientSchema(ModelSchema):
 class ClientSchema(ModelSchema):
   class Meta:
     model = Client
-    fields = ["id", "user", "name", "cpf"]
+    fields = ["id", "name", "cpf"]
 
   emails: Optional[list[str]] = None
   phones: Optional[list[str]] = None
