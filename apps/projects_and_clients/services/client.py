@@ -1,5 +1,4 @@
 from django.db import transaction
-from django.shortcuts import get_object_or_404
 from apps.projects_and_clients.models import (
   Client,
   ClientPhone,
@@ -8,6 +7,7 @@ from apps.projects_and_clients.models import (
   ClientRating,
 )
 from apps.users.models import User
+from apps.core.exceptions import ResourceNotFoundError
 
 
 class ClientService:
@@ -60,7 +60,7 @@ class ClientService:
     return client
 
   @staticmethod
-  def get(client_id: str, user: User = None) -> Client:
+  def get(client_id: str, user: User = None) -> Client | None:
     """
     Retrieves a single client by ID.
     Optionally scopes to a specific user.
@@ -68,7 +68,7 @@ class ClientService:
     filters = {"id": client_id}
     if user:
       filters["user"] = user
-    return get_object_or_404(Client, **filters)
+    return Client.objects.filter(**filters).first()
 
   @staticmethod
   def list(user: User = None):
@@ -87,6 +87,9 @@ class ClientService:
     Fully updates a client, replacing nested collections entirely.
     """
     client = ClientService.get(client_id, user)
+
+    if not client:
+      raise ResourceNotFoundError("Client not found")
 
     # Extract nested collections
     emails = data.pop("emails", []) or []
@@ -135,6 +138,9 @@ class ClientService:
     """
     client = ClientService.get(client_id, user)
 
+    if not client:
+      raise ResourceNotFoundError("Client not found")
+
     if "emails" in data:
       emails = data.pop("emails")
       ClientEmail.objects.filter(client=client).delete()
@@ -182,5 +188,9 @@ class ClientService:
     Deletes a client.
     """
     client = ClientService.get(client_id, user)
+
+    if not client:
+      raise ResourceNotFoundError("Client not found")
+
     client.delete()
     return True

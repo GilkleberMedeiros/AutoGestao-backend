@@ -1,7 +1,7 @@
 import uuid
 from django.test import TestCase
-from django.http import Http404
 
+from apps.core.exceptions import ResourceNotFoundError
 from apps.users.models import User
 from apps.projects_and_clients.models import (
   Client,
@@ -45,15 +45,15 @@ class TestClientService_Get(TestCase):
     self.assertEqual(result.name, "Client A")
 
   def test_get_client_not_found_invalid_id(self):
-    """get method returns 404 http error when passing an invalid client_id."""
+    """get method returns None when passing an invalid client_id."""
     invalid_id = str(uuid.uuid4())
-    with self.assertRaises(Http404):
-      ClientService.get(client_id=invalid_id)
+    result = ClientService.get(client_id=invalid_id)
+    self.assertIsNone(result)
 
   def test_get_client_not_found_invalid_user(self):
-    """get method returns 404 http error when passing a valid client_id and an invalid User model."""
-    with self.assertRaises(Http404):
-      ClientService.get(client_id=str(self.client_obj.id), user=self.other_user)
+    """get method returns None when passing a valid client_id and an invalid User model."""
+    result = ClientService.get(client_id=str(self.client_obj.id), user=self.other_user)
+    self.assertIsNone(result)
 
 
 class TestClientService_List(TestCase):
@@ -285,12 +285,12 @@ class TestClientService_Update(TestCase):
 
   def test_update_fails_invalid_client_id(self):
     """update method fails to update client model when client_id is invalid."""
-    with self.assertRaises(Http404):
+    with self.assertRaises(ResourceNotFoundError):
       ClientService.update(str(uuid.uuid4()), {"name": "Test"})
 
   def test_update_fails_invalid_user(self):
     """update method fails to update client model when user is invalid."""
-    with self.assertRaises(Http404):
+    with self.assertRaises(ResourceNotFoundError):
       ClientService.update(
         str(self.client_obj.id), {"name": "Test"}, user=self.other_user
       )
@@ -399,11 +399,11 @@ class TestClientService_PartialUpdate(TestCase):
     self.assertEqual(updated.address.city, "New City")
 
   def test_partial_update_fails_invalid_client_id(self):
-    with self.assertRaises(Http404):
+    with self.assertRaises(ResourceNotFoundError):
       ClientService.partial_update(str(uuid.uuid4()), {"name": "Test"})
 
   def test_partial_update_fails_invalid_user(self):
-    with self.assertRaises(Http404):
+    with self.assertRaises(ResourceNotFoundError):
       ClientService.partial_update(
         str(self.client_obj.id), {"name": "Test"}, user=self.other_user
       )
@@ -445,12 +445,12 @@ class TestClientService_Delete(TestCase):
 
   def test_delete_fails_invalid_client_id(self):
     """delete method fails when client_id is invalid."""
-    with self.assertRaises(Http404):
+    with self.assertRaises(ResourceNotFoundError):
       ClientService.delete(str(uuid.uuid4()))
 
   def test_delete_fails_invalid_user(self):
     """delete method fails when user does not own the client."""
-    with self.assertRaises(Http404):
+    with self.assertRaises(ResourceNotFoundError):
       ClientService.delete(str(self.client_obj.id), user=self.other_user)
 
     # Verify it still exists in the DB
