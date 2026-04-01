@@ -60,6 +60,8 @@ class JWTAuthenticationMiddleware(BaseMiddleware, RegexMiddlewareMixin):
     r"^/?api/users/?$",
     r"^/?api/users/auth/me?$",
     r"^/?api/users/validate/.*$",
+    r"^/?api/clients/?$",
+    r"^/?api/clients/[a-zA-Z0-9-/]+/?$",  # Bind to sub-routes that needs id on path.
   ]
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):
@@ -113,6 +115,8 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, RegexMiddlewareMixin):
 
   valid_email_routes = [
     r"^/?api/test-routes/middlewares/valid-email-permission-middleware/?$",  # Test route to test this middleware.
+    r"^/?api/clients/?$",
+    r"^/?api/clients/[a-zA-Z0-9-/]+/?$",  # Bind to sub-routes that needs id on path.
   ]
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):
