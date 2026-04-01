@@ -4,8 +4,9 @@ Routes for client manipulation.
 
 from ninja import Router
 
-from apps.core.schemas.response import BaseAPIResponse
+from apps.core.schemas.response import BaseAPIResponse, PaginatedAPIResponse
 from apps.core.exceptions import ResourceNotFoundError
+from apps.core.utils.paginate import paginate_route
 from apps.projects_and_clients.schemas.requests.client import (
   ClientSchema,
   CreateClientReq,
@@ -32,7 +33,10 @@ def create_client(request, data: CreateClientReq):
   return 201, created
 
 
-@router.get("", response={200: list[ClientSchema], 401: BaseAPIResponse})
+@router.get(
+  "", response={200: PaginatedAPIResponse[ClientSchema], 401: BaseAPIResponse}
+)
+@paginate_route(per_page=250)
 def list_clients(request):
   """
   List all clients for the authenticated user.
@@ -42,7 +46,7 @@ def list_clients(request):
 
   clients = ClientService.list(request.user)
 
-  return clients
+  return clients.order_by("id")
 
 
 @router.get(
@@ -109,7 +113,10 @@ def partial_update_client(request, client_id: str, data: PartialUpdateClientReq)
   return updated
 
 
-@router.delete("/{client_id}", response={200: BaseAPIResponse, 401: BaseAPIResponse, 404: BaseAPIResponse})
+@router.delete(
+  "/{client_id}",
+  response={200: BaseAPIResponse, 401: BaseAPIResponse, 404: BaseAPIResponse},
+)
 def delete_client(request, client_id: str):
   """
   Delete a client.

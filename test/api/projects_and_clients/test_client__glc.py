@@ -56,11 +56,13 @@ class ClientsRoute_List(BaseClientTestCase):
     data = res.json()
 
     self.assertEqual(res.status_code, 200)
-    self.assertIsInstance(data, list)
-    self.assertEqual(len(data), 1)
+    self.assertIsInstance(data, dict)
+    self.assertIn("items", data)
+    self.assertIsInstance(data["items"], list)
+    self.assertEqual(len(data["items"]), 1)
 
     # Verify outcome data structure matches ClientSchema
-    client_data = data[0]
+    client_data = data["items"][0]
     self.assertEqual(client_data["name"], "Api Test Client")
     self.assertEqual(client_data["cpf"], "12345678901")
     self.assertEqual(client_data["id"], str(self.client_obj.id))
