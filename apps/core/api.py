@@ -31,3 +31,4 @@ api.add_router("users/auth/", router="apps.authentication.routes.auth.router")
 api.add_router("users/validate/", router="apps.authentication.routes.validate.router")
 
 api.add_router("clients", router="apps.projects_and_clients.routes.client.router")
+api.add_router("clients", router="apps.projects_and_clients.routes.emails.router")
