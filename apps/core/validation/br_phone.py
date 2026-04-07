@@ -74,7 +74,7 @@ class BRPhoneValidator:
   @staticmethod
   def full_formatter(string):
     return re.sub(
-      r"^\+?55\s*\(?(\d{2})\)?\s*9\s*(\d{4})-?(\d{4})$", "+55 (\1) 9 \2-\3", string
+      r"^\+?55\s*\(?(\d{2})\)?\s*9\s*(\d{4})-?(\d{4})$", r"+55 (\1) 9 \2-\3", string
     )
 
   formatters = {
