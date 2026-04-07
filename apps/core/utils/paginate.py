@@ -38,9 +38,19 @@ def paginate_route(func: Callable = None, /, *, per_page: int = 10):
   def decorator(func: Callable):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+      result = func(*args, **kwargs)
+
+      # If the result is a tuple (status, data), we only paginate if status is 2xx
+      if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], int):
+        status_code, data = result
+        if not (200 <= status_code < 300):
+          return result
+        # If it is 2xx, we paginate the data part and return it with the status
+        return status_code, paginate(data, kwargs.get("page", 1), per_page)
+
       page = kwargs.get("page", 1)
 
-      return paginate(func(*args, **kwargs), page, per_page)
+      return paginate(result, page, per_page)
 
     return wrapper
 
