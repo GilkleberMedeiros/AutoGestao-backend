@@ -33,3 +33,4 @@ api.add_router("users/validate/", router="apps.authentication.routes.validate.ro
 api.add_router("clients", router="apps.projects_and_clients.routes.client.router")
 api.add_router("clients", router="apps.projects_and_clients.routes.emails.router")
 api.add_router("clients", router="apps.projects_and_clients.routes.phones.router")
+api.add_router("projects", router="apps.projects_and_clients.routes.project.router")
