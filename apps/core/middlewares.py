@@ -1,4 +1,6 @@
 from django.http import HttpRequest, HttpResponse
+from django.core.cache import caches
+from django.conf import settings
 
 from abc import ABC, abstractmethod
 from typing import Callable, Any, AnyStr
@@ -220,4 +222,94 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
 
     response = self.get_response(request)
 
+    return response
+
+
+class RateLimitMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
+  """
+  This middleware implements rate-limiting.
+  It overrides the mixin methods to support a third parameter: time in milliseconds.
+  """
+
+  _routes: list[tuple[str, list[str], int]] = [
+    (
+      r"^/?api/test-routes/middlewares/rate-limit-middleware/?$",
+      ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      500,
+    ),
+    (
+      r"^/?api/.*?$",
+      ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      500,
+    ),  # 500ms == 2 requests per second
+  ]
+
+  # Remove API Prod routes rate limiting if on test/dev
+  if settings.DEBUG or settings.TESTING:
+    _routes = [
+      (
+        r"^/?api/test-routes/middlewares/rate-limit-middleware/?$",
+        ["GET", "POST", "PUT", "PATCH", "DELETE"],
+        500,
+      )
+    ]
+
+  def _iter_routes(self, request: HttpRequest):
+    if not self._routes:
+      return
+
+    for route_info in self._routes:
+      if len(route_info) == 3:
+        route, http_methods, rate_limit_ms = route_info
+        yield route, http_methods, rate_limit_ms
+
+  def get_first_route_match_with_limit(
+    self, request: HttpRequest
+  ) -> tuple[re.Match[AnyStr], int] | tuple[None, None]:
+    for route, http_methods, rate_limit_ms in self._iter_routes(request):
+      m = re.match(route, request.path)
+      if m and self.get_http_method_match(request, http_methods):
+        return m, rate_limit_ms
+
+    return None, None
+
+  def __init__(self, get_response: Callable[[Any], HttpResponse]):
+    self.get_response = get_response
+    self.cache_db = caches["default"]
+
+    # Remove API Prod routes rate limiting if not on test/dev
+    if not settings.DEBUG and not settings.TESTING:
+      self._routes = [
+        (
+          r"^/?api/test-routes/middlewares/rate-limit-middleware/?$",
+          ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          500,
+        )
+      ]
+
+  def __call__(self, request: HttpRequest) -> HttpResponse:
+    match_route, rate_limit_ms = self.get_first_route_match_with_limit(request)  # type: ignore
+
+    if match_route is not None and rate_limit_ms is not None:
+      # Use User ID if authenticated, else IP address
+      user = getattr(request, "user", None)
+      identifier = (
+        str(user.id)
+        if user and user.is_authenticated
+        else request.META.get("REMOTE_ADDR", "unknown")
+      )
+
+      cache_key = f"rate_limit_{identifier}_{request.path}"
+
+      if self.cache_db.get(cache_key):
+        return HttpResponse(
+          content=json.dumps({"details": "Too Many Requests", "success": False}),
+          status=429,
+          content_type="application/json",
+        )
+      else:
+        # Cache timeout expects seconds (can be fractional like 0.5s for 500ms)
+        self.cache_db.set(cache_key, 1, timeout=rate_limit_ms / 1000.0)
+
+    response = self.get_response(request)
     return response
