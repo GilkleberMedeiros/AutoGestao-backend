@@ -64,6 +64,12 @@ class JWTAuthenticationMiddleware(BaseMiddleware, RegexMiddlewareMixin):
     r"^/?api/clients/[a-zA-Z0-9-/]+/?$",  # Bind to sub-routes that needs id on path.
     r"^/?api/projects/?$",
     r"^/?api/projects/[a-zA-Z0-9-/]+/?$",
+    r"^/?api/fingroups/?$",
+    r"^/?api/fingroups/[a-zA-Z0-9-/]+/?$",
+    r"^/?api/dashboard/?$",
+    r"^/?api/dashboard/[a-zA-Z0-9-/]+/?$",
+    r"^/?api/notifications/?$",
+    r"^/?api/notifications/[a-zA-Z0-9-/]+/?$",
   ]
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):
@@ -121,6 +127,12 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, RegexMiddlewareMixin):
     r"^/?api/clients/[a-zA-Z0-9-/]+/?$",  # Bind to sub-routes that needs id on path.
     r"^/?api/projects/?$",
     r"^/?api/projects/[a-zA-Z0-9-/]+/?$",
+    r"^/?api/fingroups/?$",
+    r"^/?api/fingroups/[a-zA-Z0-9-/]+/?$",
+    r"^/?api/dashboard/?$",
+    r"^/?api/dashboard/[a-zA-Z0-9-/]+/?$",
+    r"^/?api/notifications/?$",
+    r"^/?api/notifications/[a-zA-Z0-9-/]+/?$",
   ]
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):

@@ -23,6 +23,8 @@ DEBUG = bool(os.environ.get("DEBUG", False))
 
 USE_DEBUG_DB = bool(os.environ.get("USE_DEBUG_DB", DEBUG))
 USE_DEBUG_CACHE = bool(os.environ.get("USE_DEBUG_CACHE", DEBUG))
+USE_DEBUG_ALERTS_DB = bool(os.environ.get("USE_DEBUG_ALERTS_DB", DEBUG))
+TESTING = bool(os.environ.get("TESTING", False))
 
 # Secrets
 DJANGO_SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", None)
@@ -73,6 +75,19 @@ if USE_DEBUG_CACHE:
   DEFAULT_CACHE = {
     "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     "LOCATION": "unique-snowflake",
+  }
+
+# Notifications Cache (Redis for Alerts)
+ALERTS_URL = os.environ.get("ALERTS_URL", "redis://127.0.0.1:6379/1")
+NOTIFICATIONS_CACHE = {
+  "BACKEND": "django.core.cache.backends.redis.RedisCache",
+  "LOCATION": ALERTS_URL,
+}
+if USE_DEBUG_ALERTS_DB:
+  NOTIFICATIONS_CACHE = {
+    "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    "LOCATION": "notifications-snowflake",
+    "TIMEOUT": None,  # Make all notifications persistent by default
   }
 
 # Email

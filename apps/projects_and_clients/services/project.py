@@ -101,17 +101,44 @@ class ProjectService:
     return project
 
   @staticmethod
-  def calculate_profitability(project: Project) -> Project:
-    # project.actual_cost + Tasks.gains - Tasks.costs
-    # Tasks must be implemented to calculate profitability
-    raise NotImplementedError("Tasks must be implemented to calculate profitability.")
+  def update_financials(project: Project) -> Project:
+    """
+    Calcula profitability e hour_profitability do projeto através dos registros de finanças e actual_cost.
+    Sendo profitability = actual_cost + gains - expenses
+    E hour_profitability = profitability / hours
+    """
+    from apps.finances.models import Finance, FinGroup
+    from django.db.models import Sum, Q
+    from decimal import Decimal
 
-  @staticmethod
-  def calculate_hour_profitability(project: Project) -> Project:
-    # project.profitability / project.spent_time
-    raise NotImplementedError(
-      "Tasks must be implemented to calculate hour profitability."
-    )
+    # Resolve gains/expenses from Task.finance (FinGroup PROJECT)
+    group = FinGroup.objects.filter(related_to=project.id, relation="PROJECT").first()
+
+    gains = Decimal("0.00")
+    expenses = Decimal("0.00")
+
+    if group:
+      stats = Finance.objects.filter(fingroup=group).aggregate(
+        total_gain=Sum("amount", filter=Q(balance="POSITIVE")),
+        total_expense=Sum("amount", filter=Q(balance="NEGATIVE")),
+      )
+      gains = stats["total_gain"] or Decimal("0.00")
+      expenses = stats["total_expense"] or Decimal("0.00")
+
+    # actual_cost is the base value received for the project
+    base_gain = project.actual_cost or Decimal("0.00")
+    project.profitability = base_gain + gains - expenses
+
+    if project.spent_time:
+      total_seconds = Decimal(str(project.spent_time.total_seconds()))
+      hours = total_seconds / Decimal("3600")
+      if hours > 0:
+        project.hour_profitability = project.profitability / hours
+      else:
+        project.hour_profitability = project.profitability
+
+    project.save()
+    return project
 
   @staticmethod
   def close(user, project_id: str, data: ProjectCloseSchema) -> Project:
@@ -119,8 +146,11 @@ class ProjectService:
     if data.status not in ["CONCLUDED", "PARTIALLY_CONCLUDED", "CANCELLED"]:
       raise InvalidCloseStatusError("Invalid close status.")
 
-    # TODO: project.profitability = ProjectService.calculate_profitability(project)
-    # TODO: project.hour_profitability = ProjectService.calculate_hour_profitability(project)
+    # RN03/RN04: Atualizar indicadores financeiros ao fechar
+    project.actual_cost = data.actual_cost
+    project.actual_deadline = data.actual_deadline
+    project.spent_time = data.spent_time
+    ProjectService.update_financials(project)
 
     project.status = data.status
     project.closed_at = timezone.now()

@@ -18,6 +18,7 @@ from config.env import (
   DEBUG as _DEBUG,
   DEFAULT_DB,
   DEFAULT_CACHE,
+  NOTIFICATIONS_CACHE,
   JWT_PRIVKEY_PATH as _JWT_PRIVKEY_PATH,
   JWT_PUBKEY_PATH as _JWT_PUBKEY_PATH,
   JWT_ALGO,
@@ -29,6 +30,7 @@ from config.env import (
   EMAIL_HOST_USER as _EMAIL_HOST_USER,
   EMAIL_HOST_PASSWORD as _EMAIL_HOST_PASSWORD,
   DEFAULT_FROM_EMAIL as _DEFAULT_FROM_EMAIL,
+  TESTING as _TESTING,
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -61,6 +63,9 @@ SIMPLE_JWT = {
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _DEBUG
 
+# Tests control
+TESTING = _TESTING
+
 ALLOWED_HOSTS = []
 
 
@@ -77,6 +82,8 @@ INSTALLED_APPS = [
   "apps.users",
   "apps.authentication",
   "apps.projects_and_clients",
+  "apps.finances",
+  "apps.notifications",
 ]
 
 MIDDLEWARE = [
@@ -116,7 +123,10 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {"default": DEFAULT_DB}
 
-CACHES = {"default": DEFAULT_CACHE}
+CACHES = {
+  "default": DEFAULT_CACHE,
+  "notifications": NOTIFICATIONS_CACHE,
+}
 
 AUTH_USER_MODEL = "users.User"
 

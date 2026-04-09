@@ -115,9 +115,19 @@ class Project(models.Model):
 
 class Task(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-  project = models.ForeignKey(Project, on_delete=models.CASCADE)
-  # TODO: Later, add Finance model relation field when Finance module is created
+  project = models.ForeignKey(
+    Project, on_delete=models.CASCADE, related_name="tasks", related_query_name="task"
+  )
+  finance = models.OneToOneField(
+    "finances.Finance",
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name="task",
+    related_query_name="task",
+  )
   name = models.CharField(max_length=128)
+  description = models.TextField(max_length=512, null=True, blank=True)
 
   done_at = models.DateTimeField(null=True, blank=True)
   created_at = models.DateTimeField(auto_now_add=True)
