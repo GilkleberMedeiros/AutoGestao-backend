@@ -2,6 +2,7 @@ from django.apps import apps
 from django.contrib.auth.hashers import make_password
 from django.db import models
 from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserManager
+from sms import send_sms
 
 from uuid import uuid4
 
@@ -104,6 +105,21 @@ class User(AbstractUser):
     """
     self.is_email_valid = True
     self.save()
+
+  def validate_phone(self):
+    """
+    Update is_phone_valid field to True.
+    """
+    self.is_phone_valid = True
+    self.save()
+
+  def phone_user(self, message: str):
+    """
+    Send SMS to user phone.
+    """
+    if not self.phone:
+      return
+    send_sms(message, None, [self.phone], fail_silently=False)
 
   def __str__(self):
     return self.email

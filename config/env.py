@@ -103,3 +103,16 @@ EMAIL_USE_TLS = bool(os.environ.get("EMAIL_USE_TLS", True))
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", None)
 if DEFAULT_FROM_EMAIL is None:
   DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Twilio (SMS)
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", None)
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", None)
+TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", None)
+if not TESTING and (
+  TWILIO_ACCOUNT_SID is None
+  or TWILIO_AUTH_TOKEN is None
+  or TWILIO_PHONE_NUMBER is None
+):
+  raise MissingRequiredEnvVarError(
+    "TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER are required."
+  )

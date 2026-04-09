@@ -31,6 +31,9 @@ from config.env import (
   EMAIL_HOST_PASSWORD as _EMAIL_HOST_PASSWORD,
   DEFAULT_FROM_EMAIL as _DEFAULT_FROM_EMAIL,
   TESTING as _TESTING,
+  TWILIO_ACCOUNT_SID as _TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN as _TWILIO_AUTH_TOKEN,
+  TWILIO_PHONE_NUMBER as _TWILIO_PHONE_NUMBER,
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -78,7 +81,6 @@ INSTALLED_APPS = [
   "django.contrib.sessions",
   "django.contrib.messages",
   "django.contrib.staticfiles",
-  "apps.core",
   "apps.users",
   "apps.authentication",
   "apps.projects_and_clients",
@@ -161,6 +163,16 @@ DEFAULT_FROM_EMAIL = _DEFAULT_FROM_EMAIL
 # Contacts Info Validation Settings
 EMAIL_VALIDATION_TOKEN_LIFETIME = timedelta(minutes=30)
 EMAIL_VALIDATION_TEMPLATE = "emails/validation.html"
+PHONE_VALIDATION_TOKEN_LIFETIME = timedelta(minutes=10)
+
+# SMS Settings
+SMS_BACKEND = "sms.backends.twilio.SmsBackend"
+TWILIO_ACCOUNT_SID = _TWILIO_ACCOUNT_SID
+TWILIO_AUTH_TOKEN = _TWILIO_AUTH_TOKEN
+SMS_DEFAULT_FROM_NUMBER = _TWILIO_PHONE_NUMBER
+
+if TESTING:
+  SMS_BACKEND = "sms.backends.locmem.SmsBackend"
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
