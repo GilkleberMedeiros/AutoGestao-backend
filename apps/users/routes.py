@@ -3,6 +3,7 @@ from django.http import HttpRequest
 
 from apps.core.schemas.response import BaseAPIResponse
 from apps.users.schemas import UpdateUserReq, PartialUpdateUserReq
+from apps.users.service import UserService
 from apps.authentication.schemas import UserMeRes
 
 router = Router()
@@ -14,14 +15,9 @@ def update_user(request: HttpRequest, body: UpdateUserReq):
   if not user.is_authenticated:
     return 400, {"details": "User not authenticated", "success": False}
 
-  user.name = body.name
-  if user.email != body.email:
-    user.is_email_valid = False  # Set email as invalid if it was changed
-  user.email = body.email
-  user.phone = body.phone
-  user.save()
+  updated_user = UserService.update_user(user, body)
 
-  return 200, user
+  return 200, updated_user
 
 
 @router.patch("", response={200: UserMeRes, 400: BaseAPIResponse})
@@ -30,17 +26,6 @@ def partial_update_user(request: HttpRequest, body: PartialUpdateUserReq):
   if not user.is_authenticated:
     return 400, {"details": "User not authenticated", "success": False}
 
-  update_data = body.model_dump(exclude_unset=True)
+  updated_user = UserService.partial_update_user(user, body)
 
-  if "name" in update_data:
-    user.name = update_data["name"]
-  if "email" in update_data and update_data["email"] is not None:
-    if user.email != update_data["email"]:
-      user.is_email_valid = False  # Set email as invalid if it was changed
-    user.email = update_data["email"]
-  if "phone" in update_data:
-    user.phone = update_data["phone"]
-
-  user.save()
-
-  return 200, user
+  return 200, updated_user
