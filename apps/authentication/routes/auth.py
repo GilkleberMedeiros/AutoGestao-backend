@@ -5,7 +5,6 @@ from datetime import datetime
 
 from apps.core.schemas.response import BaseAPIResponse
 from config.settings import SIMPLE_JWT
-from apps.users.models import User
 from apps.authentication.schemas import LoginReq, RegisterReq, UserMeRes, AccessTokenRes
 from apps.authentication.services.email_validation import EmailValidationService
 from apps.authentication.services.auth import (
@@ -83,6 +82,9 @@ def register(request: HttpRequest, response: HttpResponse, body: RegisterReq):
 
 @router.get("/logout", response={200: BaseAPIResponse})
 def logout(request: HttpRequest, response: HttpResponse):
+  if "refresh_token" not in request.COOKIES:
+    return 200, {"details": "No refresh token found to be removed", "success": True}
+
   response.delete_cookie("refresh_token")
   return 200, {"details": "Logged out successfully", "success": True}
 
@@ -108,11 +110,6 @@ def refresh(request: HttpRequest, response: HttpResponse):
   return 200, access_token  # Only return Acess Token on refresh
 
 
-@router.get("/me", response={200: UserMeRes, 400: BaseAPIResponse})
-def me(request: HttpRequest, response: HttpResponse):
-  user = request.user
-  if not user.is_authenticated:
-    return 400, {"details": "User not found", "success": False}
-  user: User = user
-
-  return 200, user
+@router.get("/me", response={200: UserMeRes})
+def me(request: HttpRequest):
+  return 200, request.user
