@@ -32,3 +32,11 @@ def test_valid_email_permission_middleware(request: HttpRequest):
     return 400, {"details": "email-not-valid", "success": False}
 
   return 200, {"details": f"email-valid-{request.user.id}", "success": True}
+
+
+@router.get(
+  "rate-limit-middleware/",
+  response={200: BaseAPIResponse, 429: BaseAPIResponse},
+)
+def test_rate_limit_middleware(request: HttpRequest):
+  return 200, {"details": "rate-limit-passed", "success": True}

@@ -1,4 +1,6 @@
 from django.http import HttpRequest, HttpResponse
+from django.conf import settings
+from django.core.cache import caches
 
 from abc import ABC, abstractmethod
 from typing import Callable, Any, AnyStr, Tuple, Generator
@@ -249,3 +251,89 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
       status=status,
       content_type="application/json",
     )
+
+
+class RateLimitMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
+  """
+  This middleware implements rate-limiting.
+  It overrides the mixin methods to support a third parameter: time in milliseconds.
+  """
+
+  _routes: list[tuple[str, str | list[str], int]] = [
+    (
+      r"^/?api/test-routes/middlewares/rate-limit-middleware/?$",
+      "*",
+      500,
+    ),
+    (
+      r"^/?api/.*?$",
+      "*",
+      500,
+    ),  # 500ms == 2 requests per second
+  ]
+
+  # Only apply rate limiting if to rate limiting tests routes if testing is enabled.
+  if settings.TESTING:
+    _routes = [
+      (
+        r"^/?api/test-routes/middlewares/rate-limit-middleware/?$",
+        "*",
+        500,
+      )
+    ]
+
+  def _iter_routes(self, request: HttpRequest):
+    if not self._routes:
+      return
+
+    for route_info in self._routes:
+      if len(route_info) == 3:
+        route, http_methods, rate_limit_ms = route_info
+        if http_methods == "*" or http_methods == ["*"]:
+          http_methods = self.ALL_HTTP_METHODS
+
+        yield route, http_methods, rate_limit_ms
+
+  def get_first_route_match_with_limit(
+    self, request: HttpRequest
+  ) -> tuple[re.Match[AnyStr], int] | tuple[None, None]:
+    for route, http_methods, rate_limit_ms in self._iter_routes(request):
+      m = re.match(route, request.path)
+      if m and self.get_http_method_match(request, http_methods):
+        return m, rate_limit_ms
+
+    return None, None
+
+  def __init__(self, get_response: Callable[[Any], HttpResponse]):
+    self.get_response = get_response
+    self.cache_db = caches["default"]
+
+  def __call__(self, request: HttpRequest) -> HttpResponse:
+    match_route, rate_limit_ms = self.get_first_route_match_with_limit(request)  # type: ignore
+
+    if match_route is not None and rate_limit_ms is not None:
+      # Use User ID, if authenticated, and IP address to identify the user
+      user = getattr(request, "user", None)
+      ip_address = request.META.get("REMOTE_ADDR", "unknown-ip")
+      identifier = self._make_identifier(user, ip_address)
+
+      cache_key = f"rate_limit_{identifier}_{request.path}"
+
+      if self.cache_db.get(cache_key):
+        return HttpResponse(
+          content=json.dumps({"details": "Too Many Requests", "success": False}),
+          status=429,
+          content_type="application/json",
+        )
+      else:
+        # Cache timeout expects seconds (can be fractional like 0.5s for 500ms)
+        self.cache_db.set(cache_key, 1, timeout=rate_limit_ms / 1000.0)
+
+    response = self.get_response(request)
+    return response
+
+  def _make_identifier(self, user: User | None, ip_address: str) -> str:
+    """Make request identifier string."""
+    if user is not None and user.is_authenticated:
+      return f"RequestID(user_id={user.id}, ip_address={ip_address})"
+    return f"RequestID(ip_address={ip_address})"

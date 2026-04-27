@@ -18,6 +18,7 @@ from config.env import (
   DEBUG as _DEBUG,
   DEFAULT_DB,
   DEFAULT_CACHE,
+  TESTING as _TESTING,
   JWT_PRIVKEY_PATH as _JWT_PRIVKEY_PATH,
   JWT_PUBKEY_PATH as _JWT_PUBKEY_PATH,
   JWT_ALGO,
@@ -61,6 +62,10 @@ SIMPLE_JWT = {
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _DEBUG
 
+# WARNING: This setting is only used for testing purposes. Turning it On can load test resources and
+# routes.
+TESTING = _TESTING
+
 ALLOWED_HOSTS = []
 
 
@@ -88,8 +93,10 @@ MIDDLEWARE = [
   "django.contrib.messages.middleware.MessageMiddleware",
   "django.middleware.clickjacking.XFrameOptionsMiddleware",
   "apps.core.middlewares.JWTAuthenticationMiddleware",
+  "apps.core.middlewares.RateLimitMiddleware",
   "apps.core.middlewares.ValidEmailPermissionMiddleware",
 ]
+
 
 ROOT_URLCONF = "config.urls"
 

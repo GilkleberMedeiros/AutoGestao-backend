@@ -21,7 +21,7 @@ def unknown_exception_handler(request, exc: Exception):
 
 
 # Add test routes for testing purposes
-if settings.DEBUG:
+if settings.TESTING:
   api.add_router(
     "test-routes/middlewares/", router="apps.core.test_routes.middlewares.router"
   )

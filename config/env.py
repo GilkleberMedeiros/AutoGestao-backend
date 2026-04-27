@@ -24,6 +24,8 @@ DEBUG = bool(os.environ.get("DEBUG", False))
 USE_DEBUG_DB = bool(os.environ.get("USE_DEBUG_DB", DEBUG))
 USE_DEBUG_CACHE = bool(os.environ.get("USE_DEBUG_CACHE", DEBUG))
 
+TESTING = bool(os.environ.get("TESTING", False))
+
 # Secrets
 DJANGO_SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", None)
 if DJANGO_SECRET_KEY is None:
