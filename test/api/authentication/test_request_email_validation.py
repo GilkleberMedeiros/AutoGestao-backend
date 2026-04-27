@@ -71,7 +71,7 @@ class TestRequestEmailValidation(AuthenticatedTestCase):
     response = self.client.post(self.TEST_URL)
     response_data = response.json()
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     self.assertIsNotNone(response_data.get("details", None))
 
   def test_request_email_validation_failure_email_error(self, mock_manager: MagicMock):

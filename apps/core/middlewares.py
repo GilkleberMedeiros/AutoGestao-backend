@@ -73,39 +73,52 @@ class JWTAuthenticationMiddleware(BaseMiddleware, RegexMiddlewareMixin):
     path = request.path
     match_route = self.get_first_route_match(self.authenticate_routes, path)
 
-    # If got a listed route match try to get token
-    auth_header = ""
-    if match_route:
-      auth_header = request.headers.get("Authorization", "")
+    # If not matched route, skip authentication
+    if not match_route:
+      return self.get_response(request)
 
-    access_token = ""
-    if auth_header and auth_header.startswith("Bearer "):
-      access_token = auth_header.replace("Bearer ", "")
+    # Try to get token from header
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header:
+      return self._deny_request("Authentication token not provided.")
+    if not auth_header.startswith("Bearer "):
+      return self._deny_request("Authentication token must start with 'Bearer '.")
 
-    token_value = None
-    if access_token:
-      try:
-        token_value = JWTAuth.verify_token(access_token)
-      except Exception:
-        pass
+    access_token = auth_header.replace("Bearer ", "")
 
-    userid = None
-    if token_value:
-      userid = token_value.get("user_id", None)
+    token_value = JWTAuth.verify_token(access_token)
+    if not token_value:
+      return self._deny_request("Authentication token is invalid or expired.")
+
+    userid = token_value.get("user_id", None)
+    if not userid:
+      return self._deny_request("User id not found on authentication token.")
 
     user = None
-    if userid:
-      try:
-        user = User.objects.filter(id=userid).first()
-      except Exception:
-        return self.get_response(request)
+    try:
+      user = User.objects.filter(id=userid).first()
+    except Exception:
+      return self._deny_request(
+        "Couldn't find a User associated with the authentication token."
+      )
 
-    if user:
-      request.user = user
+    if not user:
+      return self._deny_request(
+        "Couldn't find a User associated with the authentication token."
+      )
 
-    response = self.get_response(request)
+    request.user = user
 
-    return response
+    return self.get_response(request)
+
+  def _deny_request(
+    self, message: str = "User is not authenticated.", status: int = 401
+  ):
+    return HttpResponse(
+      content=json.dumps({"details": message, "success": False}),
+      status=status,
+      content_type="application/json",
+    )
 
 
 class ValidEmailPermissionMiddleware(BaseMiddleware, RegexMiddlewareMixin):
@@ -133,20 +146,17 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, RegexMiddlewareMixin):
     if match_route:
       user = request.user
       if not user.is_authenticated:
-        return HttpResponse(
-          content=json.dumps({"details": "User not authenticated", "success": False}),
-          status=401,
-          content_type="application/json",
-        )
+        return self._deny_request("User is not authenticated.", 401)
       if not user.is_email_valid:
-        return HttpResponse(
-          content=json.dumps(
-            {"details": "User email not valid. Permission rejected.", "success": False}
-          ),
-          status=403,
-          content_type="application/json",
-        )
+        return self._deny_request("User email is not valid. Permission rejected.", 403)
 
     response = self.get_response(request)
 
     return response
+
+  def _deny_request(self, message: str, status: int):
+    return HttpResponse(
+      content=json.dumps({"details": message, "success": False}),
+      status=status,
+      content_type="application/json",
+    )

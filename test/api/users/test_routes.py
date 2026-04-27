@@ -91,14 +91,14 @@ class UserUpdateRoutesTestCase(AuthenticatedTestCase):
     self.assertEqual(self.user.phone, "5584999999999")
     self.assertEqual(self.user.is_email_valid, False)
 
-  def test_put_unauthenticated_returns_400(self):
+  def test_put_unauthenticated_returns_401(self):
     data = {
       "name": "updated name",
       "email": "updated@example.com",
       "phone": "5584999999999",
     }
     res = self._make_put_request(data)
-    self.assertEqual(res.status_code, 400)
+    self.assertEqual(res.status_code, 401)
 
   def test_put_donot_update_user_email_to_invalid_when_email_is_equal(self):
     self.user.is_email_valid = True
@@ -137,10 +137,10 @@ class UserUpdateRoutesTestCase(AuthenticatedTestCase):
     self.assertEqual(self.user.email, old_email)
     self.assertEqual(self.user.phone, old_phone)
 
-  def test_patch_unauthenticated_returns_400(self):
+  def test_patch_unauthenticated_returns_401(self):
     data = {"name": "u"}
     res = self._make_patch_request(data)
-    self.assertEqual(res.status_code, 400)
+    self.assertEqual(res.status_code, 401)
 
   def test_patch_updates_user_email_to_invalid_when_email_is_different(self):
     token = self._get_valid_token()

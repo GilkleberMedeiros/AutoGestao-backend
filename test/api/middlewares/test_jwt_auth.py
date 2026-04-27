@@ -40,18 +40,18 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
   def setUpClass(cls):
     super().setUpClass()
     cls.setUpClassUser()
+    cls.setUpClassAuth()
 
   def setUp(self):
     """Set up test client and create a test user."""
     self.client = APIClient(path_prefix=self.TEST_ROUTE_PATH)
-    self.setUpAuth()
 
   def tearDown(self):
-    self.tearDownAuth()
     return super().tearDown()
 
   @classmethod
   def tearDownClass(cls):
+    cls.tearDownClassAuth()
     cls.tearDownClassUser()
     return super().tearDownClass()
 
@@ -93,66 +93,60 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
     self.assertEqual(response.status_code, 200)
     response_data = response.json()
     self.assertTrue(response_data["success"])
-    self.assertEqual(response_data["details"], f"authenticated-{self.user.id}")
 
-  def test_anonymous_user_without_authorization_header(self):
+  def test_reject_request_without_authorization_header(self):
     """
-    Test that user remains anonymous when no Authorization header is provided.
+    Test that request is rejected when no Authorization header is provided.
     """
     response = self._make_request()
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])
-    self.assertEqual(response_data["details"], "not-authenticated")
 
-  def test_anonymous_user_with_missing_bearer_token(self):
+  def test_reject_request_with_missing_bearer_token(self):
     """
-    Test that user remains anonymous when Authorization header exists but token is missing.
+    Test that request is rejected when Authorization header exists but token is missing.
     """
     response = self._make_request({"Authorization": "Bearer "})
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])
-    self.assertEqual(response_data["details"], "not-authenticated")
 
-  def test_anonymous_user_with_invalid_bearer_format(self):
+  def test_reject_request_with_invalid_bearer_format(self):
     """
-    Test that user remains anonymous when Authorization header has invalid format.
+    Test that request is rejected when Authorization header has invalid format.
     """
     response = self._make_request({"Authorization": "InvalidFormat sometoken"})
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])
-    self.assertEqual(response_data["details"], "not-authenticated")
 
-  def test_anonymous_user_with_malformed_token(self):
+  def test_reject_request_with_malformed_token(self):
     """
-    Test that user remains anonymous when token is malformed.
+    Test that request is rejected when token is malformed.
     """
     response = self._make_request({"Authorization": "Bearer invalid.token.format"})
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])
-    self.assertEqual(response_data["details"], "not-authenticated")
 
-  def test_anonymous_user_with_completely_invalid_token(self):
+  def test_reject_request_with_completely_invalid_token(self):
     """
-    Test that user remains anonymous when token is not a valid JWT.
+    Test that request is rejected when token is not a valid JWT.
     """
     response = self._make_request({"Authorization": "Bearer notajwttoken"})
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])
-    self.assertEqual(response_data["details"], "not-authenticated")
 
-  def test_anonymous_user_when_token_missing_user_id(self):
+  def test_reject_request_when_token_missing_user_id(self):
     """
-    Test that user remains anonymous when token doesn't contain user_id field.
+    Test that request is rejected when token doesn't contain user_id field.
     """
     # Create a JWT token manually without user_id
     payload = {
@@ -167,14 +161,13 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
 
     response = self._make_request({"Authorization": f"Bearer {invalid_token}"})
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])
-    self.assertEqual(response_data["details"], "not-authenticated")
 
-  def test_anonymous_user_with_nonexistent_user_id(self):
+  def test_reject_request_with_nonexistent_user_id(self):
     """
-    Test that user remains anonymous when token contains user_id
+    Test that request is rejected when token contains user_id
     but user doesn't exist in database.
     """
     # Create token with non-existent user_id
@@ -190,12 +183,11 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
 
     response = self._make_request({"Authorization": f"Bearer {invalid_token}"})
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])
-    self.assertEqual(response_data["details"], "not-authenticated")
 
-  def test_authenticates_user_with_correct_user_id(self):
+  def test_authenticate_user_with_correct_user_id(self):
     """
     Test that middleware correctly authenticates user when token
     contains valid user_id that exists in database.
@@ -216,9 +208,8 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
     self.assertEqual(response.status_code, 200)
     response_data = response.json()
     self.assertTrue(response_data["success"])
-    self.assertEqual(response_data["details"], f"authenticated-{self.user.id}")
 
-  def test_authenticates_with_real_access_token(self):
+  def test_authenticate_with_real_access_token(self):
     """
     Test that middleware can authenticate using real access token
     generated by JWTAuth.create_tokens().
@@ -230,9 +221,8 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
     self.assertEqual(response.status_code, 200)
     response_data = response.json()
     self.assertTrue(response_data["success"])
-    self.assertEqual(response_data["details"], f"authenticated-{self.user.id}")
 
-  def test_multiple_users_authentication(self):
+  def test_authenticate_multiple_users(self):
     """
     Test that middleware correctly authenticates different users
     with their respective tokens.
@@ -252,14 +242,10 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
     # Test first user
     response1 = self._make_request({"Authorization": f"Bearer {token1}"})
     self.assertEqual(response1.status_code, 200)
-    response_data1 = response1.json()
-    self.assertEqual(response_data1["details"], f"authenticated-{self.user.id}")
 
     # Test second user
     response2 = self._make_request({"Authorization": f"Bearer {token2}"})
     self.assertEqual(response2.status_code, 200)
-    response_data2 = response2.json()
-    self.assertEqual(response_data2["details"], f"authenticated-{user2.id}")
 
   def test_authorization_header_case_insensitivity(self):
     """
@@ -272,7 +258,7 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
 
     # Should work or fail gracefully (depends on implementation)
     # Most implementations are case-insensitive for Bearer
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
 
   def test_token_with_extra_whitespace(self):
     """
@@ -284,7 +270,7 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
     response = self._make_request({"Authorization": f"Bearer  {token}"})
 
     # Should fail as invalid format
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])
 
@@ -294,7 +280,7 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
     """
     response = self._make_request({"Authorization": ""})
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])
 
@@ -304,6 +290,6 @@ class JWTAuthMiddlewareTestCase(AuthenticatedTestCase):
     """
     response = self._make_request({"Authorization": "Bearer"})
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])

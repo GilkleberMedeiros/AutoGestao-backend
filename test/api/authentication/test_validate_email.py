@@ -86,5 +86,5 @@ class TestValidateEmail(AuthenticatedTestCase):
     response = self.client.post(f"{self.TEST_URL}token")
     response_data = response.json()
 
-    self.assertEqual(response.status_code, 400)
+    self.assertEqual(response.status_code, 401)
     self.assertIsNotNone(response_data.get("details", None))

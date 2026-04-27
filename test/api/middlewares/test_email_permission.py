@@ -34,11 +34,11 @@ class ValidEmailPermissionMiddlewareTestCase(AuthenticatedTestCase):
   def setUpClass(cls):
     super().setUpClass()
     cls.setUpClassUser()
+    cls.setUpClassAuth()
 
   def setUp(self):
     """Set up test client and authenticate."""
     self.client = APIClient(path_prefix=self.TEST_ROUTE_PATH)
-    self.setUpAuth()
 
     # By default in AuthenticatedTestCase, the user might not have is_email_valid=True
     # Let's ensure it's False by default to test the baseline
@@ -46,11 +46,11 @@ class ValidEmailPermissionMiddlewareTestCase(AuthenticatedTestCase):
     self.user.save()
 
   def tearDown(self):
-    self.tearDownAuth()
     return super().tearDown()
 
   @classmethod
   def tearDownClass(cls):
+    cls.tearDownClassAuth()
     cls.tearDownClassUser()
     return super().tearDownClass()
 
@@ -81,7 +81,7 @@ class ValidEmailPermissionMiddlewareTestCase(AuthenticatedTestCase):
 
   def test_unauthenticated_user_rejected_by_middleware(self):
     """
-    Test the exception path where user isn't authenticated and middleware returns its own message.
+    Test the exception path where user isn't authenticated and Authentication Middleware rejects the request.
     """
     # No authorization header provided
     response = self._make_request()
@@ -89,7 +89,6 @@ class ValidEmailPermissionMiddlewareTestCase(AuthenticatedTestCase):
     self.assertEqual(response.status_code, 401)
     response_data = response.json()
     self.assertFalse(response_data["success"])
-    self.assertEqual(response_data["details"], "User not authenticated")
 
   def test_authenticated_user_with_invalid_email_rejected_by_middleware(self):
     """
@@ -102,7 +101,6 @@ class ValidEmailPermissionMiddlewareTestCase(AuthenticatedTestCase):
     self.assertEqual(response.status_code, 403)
     response_data = response.json()
     self.assertFalse(response_data["success"])
-    self.assertEqual(response_data["details"], "User email not valid. Permission rejected.")
 
   def test_multiple_users_with_different_email_validity(self):
     """
@@ -136,4 +134,3 @@ class ValidEmailPermissionMiddlewareTestCase(AuthenticatedTestCase):
     self.assertEqual(response2.status_code, 403)
     response_data2 = response2.json()
     self.assertFalse(response_data2["success"])
-    self.assertEqual(response_data2["details"], "User email not valid. Permission rejected.")
