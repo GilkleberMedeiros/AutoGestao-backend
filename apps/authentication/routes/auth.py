@@ -7,8 +7,15 @@ from apps.core.schemas.response import BaseAPIResponse
 from config.settings import SIMPLE_JWT
 from apps.users.models import User
 from apps.authentication.schemas import LoginReq, RegisterReq, UserMeRes, AccessTokenRes
-from apps.authentication.utils.jwt_auth import JWTAuth
 from apps.authentication.services.email_validation import EmailValidationService
+from apps.authentication.services.auth import (
+  AuthService,
+  UserInvalidCredentialsError,
+  UserEmailAlreadyExistsError,
+  UserPhoneAlreadyExistsError,
+  MissingRefreshTokenError,
+  InvalidRefreshTokenError,
+)
 
 
 router = Router()
@@ -16,11 +23,14 @@ router = Router()
 
 @router.post("/login", response={200: AccessTokenRes, 400: BaseAPIResponse})
 def login(request: HttpRequest, response: HttpResponse, body: LoginReq):
-  user = User.objects.filter(email=body.email).first()
-  if not user or not user.check_password(body.password):
-    return 400, {"details": "Invalid credentials", "success": False}
 
-  tokens = JWTAuth.create_tokens(user)
+  try:
+    tokens = AuthService.login(body)
+  except UserInvalidCredentialsError:
+    return 400, {"details": "User credentials are invalid", "success": False}
+  except Exception:
+    return 500, {"details": "Unknown Error when logging in", "success": False}
+
   tz = get_current_timezone()
   response.set_cookie(
     "refresh_token",
@@ -45,23 +55,14 @@ def register(request: HttpRequest, response: HttpResponse, body: RegisterReq):
   Try sending an validation email for user immediately after registration.
   """
 
-  # Validate email is unique
-  if User.objects.filter(email=body.email).exists():
-    return 400, {"details": "Email already exists", "success": False}
-
-  # Validate phone is unique
-  if body.phone and User.objects.filter(phone=body.phone).exists():
-    return 400, {"details": "Phone already exists", "success": False}
-
   try:
-    user = User.objects.create_user(
-      name=body.name,
-      email=body.email,
-      password=body.password,
-      phone=body.phone,
-    )
-  except Exception as _:
-    return 500, {"details": "Unknow Error when creating user", "success": False}
+    user = AuthService.register(body)
+  except UserEmailAlreadyExistsError:
+    return 400, {"details": "User email already exists", "success": False}
+  except UserPhoneAlreadyExistsError:
+    return 400, {"details": "User phone already exists", "success": False}
+  except Exception:
+    return 500, {"details": "Unknown Error when registering user", "success": False}
 
   # Send validation email for user immediately after registration
   try:
@@ -93,15 +94,15 @@ def logout(request: HttpRequest, response: HttpResponse):
 def refresh(request: HttpRequest, response: HttpResponse):
   refresh_token = request.COOKIES.get("refresh_token")
 
-  if not refresh_token:
-    return 400, {"details": "Refresh token not provided", "success": False}
-
-  decoded = JWTAuth.verify_token(refresh_token)
-  if not decoded:
+  try:
+    tokens = AuthService.refresh(refresh_token)
+  except InvalidRefreshTokenError:
     return 400, {"details": "Invalid refresh token", "success": False}
+  except MissingRefreshTokenError:
+    return 400, {"details": "Missing refresh token", "success": False}
+  except Exception:
+    return 500, {"details": "Unknown Error when refreshing token", "success": False}
 
-  user = User.objects.get(id=decoded["user_id"])
-  tokens = JWTAuth.create_tokens(user)
   access_token = {"access": tokens["access"]}
 
   return 200, access_token  # Only return Acess Token on refresh
