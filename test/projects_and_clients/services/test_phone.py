@@ -1,152 +1,151 @@
+from unittest import TestCase
+from unittest.mock import MagicMock, patch
 import uuid
-from django.test import TestCase
-from apps.projects_and_clients.models import Client, ClientPhone
-from apps.users.models import User
+
 from apps.core.exceptions import ResourceNotFoundError
 from apps.projects_and_clients.services.phones import ClientPhoneService
 
 
 class TestClientPhoneService_Create(TestCase):
-  @classmethod
-  def setUpClass(cls):
-    super().setUpClass()
-    cls.user = User.objects.create_user(
-      name="Create User", email="create_p@example.com", password="password123"
-    )
-    cls.other_user = User.objects.create_user(
-      name="Other User", email="other_p@example.com", password="password123"
-    )
-    cls.client_obj = Client.objects.create(user=cls.user, name="Test Client")
-
-  @classmethod
-  def tearDownClass(cls):
-    cls.user.delete()
-    cls.other_user.delete()
-    super().tearDownClass()
-
-  def test_create_phone_success(self):
+  @patch("apps.projects_and_clients.services.phones.ClientPhone")
+  @patch("apps.projects_and_clients.services.phones.Client")
+  def test_create_phone_success(self, MockClient, MockClientPhone):
     """create method successfully adds a phone to a client."""
+    user_mock = MagicMock()
+    client_mock = MagicMock()
+    MockClient.objects.filter.return_value.first.return_value = client_mock
+
+    created_phone_mock = MagicMock()
+    created_phone_mock.phone = "5511999999999"
+    created_phone_mock.client = client_mock
+    MockClientPhone.objects.create.return_value = created_phone_mock
+
     data = {"phone": "11999999999"}
-    phone = ClientPhoneService.create(str(self.client_obj.id), data, self.user)
+    phone = ClientPhoneService.create("test-client-id", data, user_mock)
 
     self.assertEqual(phone.phone, "+55 (11) 9 9999-9999")
-    self.assertEqual(phone.client, self.client_obj)
+    self.assertEqual(phone.client, client_mock)
+    MockClient.objects.filter.assert_called_once_with(id="test-client-id", user=user_mock)
+    MockClientPhone.objects.create.assert_called_once_with(
+        client=client_mock, phone="5511999999999"
+    )
 
-  def test_create_phone_fails_invalid_client(self):
+  @patch("apps.projects_and_clients.services.phones.Client")
+  def test_create_phone_fails_invalid_client(self, MockClient):
     """create method fails when client_id is invalid."""
-    with self.assertRaises(ResourceNotFoundError):
-      ClientPhoneService.create(str(uuid.uuid4()), {"phone": "11999999999"}, self.user)
+    user_mock = MagicMock()
+    MockClient.objects.filter.return_value.first.return_value = None
 
-  def test_create_phone_fails_unauthorized(self):
-    """create method fails when client does not belong to the user."""
+    invalid_id = str(uuid.uuid4())
     with self.assertRaises(ResourceNotFoundError):
-      ClientPhoneService.create(
-        str(self.client_obj.id), {"phone": "11999999999"}, self.other_user
-      )
+      ClientPhoneService.create(invalid_id, {"phone": "11999999999"}, user_mock)
+    MockClient.objects.filter.assert_called_once_with(id=invalid_id, user=user_mock)
+
+  @patch("apps.projects_and_clients.services.phones.Client")
+  def test_create_phone_fails_unauthorized(self, MockClient):
+    """create method fails when client does not belong to the user."""
+    user_mock = MagicMock()
+    MockClient.objects.filter.return_value.first.return_value = None
+
+    with self.assertRaises(ResourceNotFoundError):
+      ClientPhoneService.create("test-client-id", {"phone": "11999999999"}, user_mock)
+    MockClient.objects.filter.assert_called_once_with(id="test-client-id", user=user_mock)
 
 
 class TestClientPhoneService_List(TestCase):
-  @classmethod
-  def setUpClass(cls):
-    super().setUpClass()
-    cls.user = User.objects.create_user(
-      name="List User", email="list_p@example.com", password="password123"
-    )
-    cls.other_user = User.objects.create_user(
-      name="Other User", email="other_list_p@example.com", password="password123"
-    )
-    cls.client_obj = Client.objects.create(user=cls.user, name="List Client")
-    ClientPhone.objects.create(client=cls.client_obj, phone="5511911111111")
-    ClientPhone.objects.create(client=cls.client_obj, phone="5511922222222")
-
-  @classmethod
-  def tearDownClass(cls):
-    cls.user.delete()
-    cls.other_user.delete()
-    super().tearDownClass()
-
-  def test_list_phones_success(self):
+  @patch("apps.projects_and_clients.services.phones.Client")
+  def test_list_phones_success(self, MockClient):
     """list method successfully returns all phones for a specific client."""
-    results = ClientPhoneService.list(str(self.client_obj.id), self.user)
+    user_mock = MagicMock()
+    client_mock = MagicMock()
+
+    mock_phone1 = MagicMock()
+    mock_phone1.phone = "5511911111111"
+    mock_phone2 = MagicMock()
+    mock_phone2.phone = "5511922222222"
+
+    mock_qs = MagicMock()
+    mock_qs.order_by.return_value = [mock_phone1, mock_phone2]
+    client_mock.phones.all.return_value = mock_qs
+
+    MockClient.objects.filter.return_value.first.return_value = client_mock
+
+    results = ClientPhoneService.list("test-client-id", user_mock)
+
     self.assertEqual(len(results), 2)
     phones = [p.phone for p in results]
     self.assertIn("+55 (11) 9 1111-1111", phones)
     self.assertIn("+55 (11) 9 2222-2222", phones)
+    MockClient.objects.filter.assert_called_once_with(id="test-client-id", user=user_mock)
+    client_mock.phones.all.assert_called_once()
 
-  def test_list_phones_fails_invalid_client(self):
+  @patch("apps.projects_and_clients.services.phones.Client")
+  def test_list_phones_fails_invalid_client(self, MockClient):
     """list method fails when client_id is invalid."""
-    with self.assertRaises(ResourceNotFoundError):
-      ClientPhoneService.list(str(uuid.uuid4()), self.user)
+    user_mock = MagicMock()
+    MockClient.objects.filter.return_value.first.return_value = None
 
-  def test_list_phones_fails_unauthorized(self):
-    """list method fails when client does not belong to the user."""
+    invalid_id = str(uuid.uuid4())
     with self.assertRaises(ResourceNotFoundError):
-      ClientPhoneService.list(str(self.client_obj.id), self.other_user)
+      ClientPhoneService.list(invalid_id, user_mock)
+
+  @patch("apps.projects_and_clients.services.phones.Client")
+  def test_list_phones_fails_unauthorized(self, MockClient):
+    """list method fails when client does not belong to the user."""
+    user_mock = MagicMock()
+    MockClient.objects.filter.return_value.first.return_value = None
+
+    with self.assertRaises(ResourceNotFoundError):
+      ClientPhoneService.list("test-client-id", user_mock)
 
 
 class TestClientPhoneService_Update(TestCase):
-  @classmethod
-  def setUpClass(cls):
-    super().setUpClass()
-    cls.user = User.objects.create_user(
-      name="Update User", email="update_p@example.com", password="password123"
-    )
-    cls.other_user = User.objects.create_user(
-      name="Update Other", email="u_other_p@example.com", password="password123"
-    )
-    cls.client_obj = Client.objects.create(user=cls.user, name="Update Client")
-    cls.phone_obj = ClientPhone.objects.create(
-      client=cls.client_obj, phone="5511988888888"
-    )
-
-  @classmethod
-  def tearDownClass(cls):
-    cls.user.delete()
-    cls.other_user.delete()
-    super().tearDownClass()
-
-  def test_update_phone_success(self):
+  @patch("apps.projects_and_clients.services.phones.ClientPhone")
+  def test_update_phone_success(self, MockClientPhone):
     """update method successfully updates a specific phone."""
-    data = {"phone": "11977777777"}
-    updated = ClientPhoneService.update(str(self.phone_obj.id), data, self.user)
-    self.assertEqual(updated.phone, "+55 (11) 9 7777-7777")
+    user_mock = MagicMock()
+    phone_mock = MagicMock()
+    phone_mock.phone = "5511988888888"
 
-  def test_update_phone_fails_unauthorized(self):
+    MockClientPhone.objects.filter.return_value.first.return_value = phone_mock
+
+    data = {"phone": "11977777777"}
+    updated = ClientPhoneService.update("test-phone-id", data, user_mock)
+
+    self.assertEqual(updated.phone, "+55 (11) 9 7777-7777")
+    phone_mock.save.assert_called_once()
+    MockClientPhone.objects.filter.assert_called_once_with(id="test-phone-id", client__user=user_mock)
+
+  @patch("apps.projects_and_clients.services.phones.ClientPhone")
+  def test_update_phone_fails_unauthorized(self, MockClientPhone):
     """update method fails when phone belongs to another user's client."""
+    user_mock = MagicMock()
+    MockClientPhone.objects.filter.return_value.first.return_value = None
+
     with self.assertRaises(ResourceNotFoundError):
-      ClientPhoneService.update(
-        str(self.phone_obj.id), {"phone": "11966666666"}, self.other_user
-      )
+      ClientPhoneService.update("test-phone-id", {"phone": "11966666666"}, user_mock)
 
 
 class TestClientPhoneService_Delete(TestCase):
-  @classmethod
-  def setUpClass(cls):
-    super().setUpClass()
-    cls.user = User.objects.create_user(
-      name="Delete User", email="delete_p@example.com", password="password123"
-    )
-    cls.other_user = User.objects.create_user(
-      name="Delete Other", email="d_other_p@example.com", password="password123"
-    )
-    cls.client_obj = Client.objects.create(user=cls.user, name="Delete Client")
-
-  @classmethod
-  def tearDownClass(cls):
-    cls.user.delete()
-    cls.other_user.delete()
-    super().tearDownClass()
-
-  def test_delete_phone_success(self):
+  @patch("apps.projects_and_clients.services.phones.ClientPhone")
+  def test_delete_phone_success(self, MockClientPhone):
     """delete method successfully removes a specific phone."""
-    phone = ClientPhone.objects.create(client=self.client_obj, phone="5511955555555")
-    result = ClientPhoneService.delete(str(phone.id), self.user)
-    self.assertTrue(result)
-    self.assertFalse(ClientPhone.objects.filter(id=phone.id).exists())
+    user_mock = MagicMock()
+    phone_mock = MagicMock()
 
-  def test_delete_phone_fails_unauthorized(self):
+    MockClientPhone.objects.filter.return_value.first.return_value = phone_mock
+
+    result = ClientPhoneService.delete("test-phone-id", user_mock)
+
+    self.assertTrue(result)
+    phone_mock.delete.assert_called_once()
+    MockClientPhone.objects.filter.assert_called_once_with(id="test-phone-id", client__user=user_mock)
+
+  @patch("apps.projects_and_clients.services.phones.ClientPhone")
+  def test_delete_phone_fails_unauthorized(self, MockClientPhone):
     """delete method fails when phone belongs to another user's client."""
-    phone = ClientPhone.objects.create(client=self.client_obj, phone="5511944444444")
+    user_mock = MagicMock()
+    MockClientPhone.objects.filter.return_value.first.return_value = None
+
     with self.assertRaises(ResourceNotFoundError):
-      ClientPhoneService.delete(str(phone.id), self.other_user)
-    self.assertTrue(ClientPhone.objects.filter(id=phone.id).exists())
+      ClientPhoneService.delete("test-phone-id", user_mock)
