@@ -3,6 +3,7 @@ Base Test Client for API Testing.
 """
 
 from django.test import Client, TestCase
+from django.http import HttpResponse
 
 
 class APIClient(Client):
@@ -62,7 +63,7 @@ class APIClient(Client):
     if self.path_prefix and not path.startswith(self.path_prefix):
       # Remove leading slash from path to avoid double slashes
       path = path.lstrip("/")
-      return f"{self.path_prefix}/{path}" if path else self.path_prefix
+      path = f"{self.path_prefix}/{path}" if path else self.path_prefix
     return path
 
   def _prepare_kwargs(self, kwargs):
@@ -79,19 +80,19 @@ class APIClient(Client):
       kwargs["content_type"] = self.content_type
     return kwargs
 
-  def get(self, path: str = "", *args, **kwargs):
+  def get(self, path: str = "", *args, **kwargs) -> HttpResponse:
     """Make a GET request with default content_type."""
     path = self._prepare_path(path)
     kwargs = self._prepare_kwargs(kwargs)
     return super().get(path, *args, **kwargs)
 
-  def post(self, path: str = "", data=None, *args, **kwargs):
+  def post(self, path: str = "", data=None, *args, **kwargs) -> HttpResponse:
     """Make a POST request with default content_type."""
     path = self._prepare_path(path)
     kwargs = self._prepare_kwargs(kwargs)
     return super().post(path, data=data, *args, **kwargs)
 
-  def put(self, path: str = "", data="", *args, **kwargs):
+  def put(self, path: str = "", data="", *args, **kwargs) -> HttpResponse:
     """Make a PUT request with default content_type."""
     path = self._prepare_path(path)
     kwargs = self._prepare_kwargs(kwargs)
@@ -103,25 +104,25 @@ class APIClient(Client):
     kwargs = self._prepare_kwargs(kwargs)
     return super().patch(path, data=data, *args, **kwargs)
 
-  def delete(self, path: str = "", *args, **kwargs):
+  def delete(self, path: str = "", *args, **kwargs) -> HttpResponse:
     """Make a DELETE request with default content_type."""
     path = self._prepare_path(path)
     kwargs = self._prepare_kwargs(kwargs)
     return super().delete(path, *args, **kwargs)
 
-  def head(self, path: str = "", *args, **kwargs):
+  def head(self, path: str = "", *args, **kwargs) -> HttpResponse:
     """Make a HEAD request with default content_type."""
     path = self._prepare_path(path)
     kwargs = self._prepare_kwargs(kwargs)
     return super().head(path, *args, **kwargs)
 
-  def options(self, path: str = "", *args, **kwargs):
+  def options(self, path: str = "", *args, **kwargs) -> HttpResponse:
     """Make an OPTIONS request with default content_type."""
     path = self._prepare_path(path)
     kwargs = self._prepare_kwargs(kwargs)
     return super().options(path, *args, **kwargs)
 
-  def trace(self, path: str = "", *args, **kwargs):
+  def trace(self, path: str = "", *args, **kwargs) -> HttpResponse:
     """Make a TRACE request with default content_type."""
     path = self._prepare_path(path)
     kwargs = self._prepare_kwargs(kwargs)

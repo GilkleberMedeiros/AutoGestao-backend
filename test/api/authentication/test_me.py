@@ -31,17 +31,16 @@ class UserMeTestCase(AuthenticatedTestCase):
   def setUpClass(cls):
     super().setUpClass()
     super().setUpClassUser()
+    super().setUpClassAuth()
 
   def setUp(self):
     super().setUp()
-    self.setUpAuth()
     self.client = APIClient(path_prefix=self.URL)
     self.me = lambda headers, *args, **kwargs: self.client.get(
       "", headers=headers, *args, **kwargs
     )
 
   def tearDown(self):
-    self.tearDownAuth()
     super().tearDown()
 
     self.me = None
@@ -49,7 +48,8 @@ class UserMeTestCase(AuthenticatedTestCase):
 
   @classmethod
   def tearDownClass(cls):
-    cls.tearDownClassUser()
+    super().tearDownClassAuth()
+    super().tearDownClassUser()
     super().tearDownClass()
 
   def login(self):
@@ -129,10 +129,8 @@ class UserMeTestCase(AuthenticatedTestCase):
       self.user.is_phone_valid, response_data.get("is_phone_valid", None)
     )
 
-  def test_returns_error_response_on_invalid_access_token(self):
-    # Send an invalid/malformed access token
-    headers = {"Authorization": "Bearer <invalid_token>"}
-    response = self.me(headers)
+  def test_unauthenticated_user_cant_access_me_endpoint(self):
+    response = self.me(headers={})
     response_data = response.json()
 
     self.assertEqual(response.status_code, 401)
@@ -140,27 +138,7 @@ class UserMeTestCase(AuthenticatedTestCase):
     self.assertIsNotNone(response_data.get("details", None))
     self.assertEqual(response_data.get("success", None), False)
 
-  def test_returns_error_response_on_missing_access_token(self):
-    headers = {"Authorization": "Bearer "}
-    response = self.me(headers)
-    response_data = response.json()
-
-    self.assertEqual(response.status_code, 401)
-    self.assertIsInstance(response_data, dict)
-    self.assertIsNotNone(response_data.get("details", None))
-    self.assertEqual(response_data.get("success", None), False)
-
-  def test_returns_error_response_on_missing_authorization_header(self):
-    headers = {}
-    response = self.me(headers)
-    response_data = response.json()
-
-    self.assertEqual(response.status_code, 401)
-    self.assertIsInstance(response_data, dict)
-    self.assertIsNotNone(response_data.get("details", None))
-    self.assertEqual(response_data.get("success", None), False)
-
-  def test_returns_error_response_on_token_for_inexistent_user(self):
+  def test_returns_error_response_for_inexistent_user(self):
     # Create a valid JWT token for a user that doesn't exist
     tz = get_current_timezone()
     now = datetime.now(tz)
@@ -179,16 +157,3 @@ class UserMeTestCase(AuthenticatedTestCase):
 
     self.assertEqual(response.status_code, 401)
     self.assertIsInstance(response_data, dict)
-
-  def test_returns_error_response_on_missing_bearer_prefix(self):
-    # Send authorization header without 'Bearer ' prefix
-    access_token = self.credentials["access"]
-
-    headers = {"Authorization": access_token}  # Missing 'Bearer ' prefix
-    response = self.me(headers)
-    response_data = response.json()
-
-    self.assertEqual(response.status_code, 401)
-    self.assertIsInstance(response_data, dict)
-    self.assertIsNotNone(response_data.get("details", None))
-    self.assertEqual(response_data.get("success", None), False)

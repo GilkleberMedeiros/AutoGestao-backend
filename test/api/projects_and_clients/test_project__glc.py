@@ -3,6 +3,7 @@ from test.api.base import AuthenticatedTestCase, APIClient
 from apps.users.models import User
 from apps.projects_and_clients.models import Client, Project
 
+
 class BaseProjectTestCase(AuthenticatedTestCase):
   """Helper setup for project API tests."""
 
@@ -33,7 +34,7 @@ class BaseProjectTestCase(AuthenticatedTestCase):
       name="Api Test Project",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
-      status="OPEN"
+      status="OPEN",
     )
 
   @classmethod
@@ -105,12 +106,12 @@ class ProjectsRoute_Create(BaseProjectTestCase):
   def test_create_project_success_outcome_validation(self):
     token = self._get_valid_token()
     data = {
-      "name": "New Project", 
-      "description": "test", 
-      "estimated_deadline": "2026-12-31", 
+      "name": "New Project",
+      "description": "test",
+      "estimated_deadline": "2026-12-31",
       "estimated_cost": 200.00,
       "colortag": "#000000",
-      "client_id": str(self.client_obj.id)
+      "client_id": str(self.client_obj.id),
     }
 
     res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
@@ -121,12 +122,22 @@ class ProjectsRoute_Create(BaseProjectTestCase):
     self.assertIn("id", res_data)
 
   def test_create_project_unauthenticated_returns_401(self):
-    data = {"name": "New Project", "client_id": str(self.client_obj.id), "estimated_deadline": "2026-12-31", "estimated_cost": 200.00}
+    data = {
+      "name": "New Project",
+      "client_id": str(self.client_obj.id),
+      "estimated_deadline": "2026-12-31",
+      "estimated_cost": 200.00,
+    }
     res = self.client.post("", data=data)
     self.assertEqual(res.status_code, 401)
 
   def test_create_project_client_not_found_returns_404(self):
     token = self._get_valid_token()
-    data = {"name": "New Project", "client_id": str(uuid.uuid4()), "estimated_deadline": "2026-12-31", "estimated_cost": 200.00}
+    data = {
+      "name": "New Project",
+      "client_id": str(uuid.uuid4()),
+      "estimated_deadline": "2026-12-31",
+      "estimated_cost": 200.00,
+    }
     res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
     self.assertEqual(res.status_code, 404)

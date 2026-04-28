@@ -2,51 +2,52 @@
 Test API Refresh Endpoint
 """
 
-from django.test import TestCase, Client
 from django.utils.timezone import get_current_timezone
 import jwt
 from datetime import datetime, timedelta
 
+from test.api.base import AuthenticatedTestCase, APIClient
 from apps.users.models import User
 from config import settings
 
 
-class RefreshTestCase(TestCase):
+class RefreshTestCase(AuthenticatedTestCase):
   URL = "/api/users/auth/refresh"
+
+  user_create_data = {
+    "name": "testuser",
+    "email": "testuser.example@gmail.com",
+    "password": "testpassword",
+    "phone": "5584000000000",
+  }
+  user_create_model = User
+
+  login_data = {
+    "email": "testuser.example@gmail.com",
+    "password": "testpassword",
+  }
 
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-
-    # Create User
-    try:
-      cls.user = User.objects.create_user(
-        name="testuser",
-        email="testuser.example@gmail.com",
-        password="testpassword",
-        phone="5584000000000",
-      )
-    except Exception as e:
-      raise Exception(
-        f"Unknown exception while creating user for LoginTestCase!\nException: \n{e}"
-      )
+    super().setUpClassUser()
+    super().setUpClassAuth()
+    cls.refresh_token = cls.login_response.cookies.get("refresh_token", None).value
 
   def setUp(self):
-    self.client = Client()
-    self.refresh = lambda *args, **kwargs: self.client.get(
-      self.URL, content_type="application/json", *args, **kwargs
-    )
+    super().setUp()
+    self.client = APIClient(path_prefix=self.URL)
+    self.client.cookies["refresh_token"] = self.refresh_token
 
-    # djando.test.Client automatically manages cookies.
-    login_data = {"email": "testuser.example@gmail.com", "password": "testpassword"}
-    _ = self.client.post(
-      "/api/users/auth/login", login_data, content_type="application/json"
-    )
+  @classmethod
+  def tearDownClass(cls):
+    super().tearDownClassAuth()
+    super().tearDownClassUser()
+    super().tearDownClass()
 
   def test_refresh_token_successfully(self):
     # Got refresh_token cookie on setUp method.
-
-    response = self.refresh()
+    response = self.client.get()
     response_data = response.json()
 
     self.assertEqual(response.status_code, 200)
@@ -68,7 +69,7 @@ class RefreshTestCase(TestCase):
   def test_doesnot_return_new_refresh_token(self):
     # Got refresh_token cookie on setUp method.
 
-    response = self.refresh()
+    response = self.client.get()
     response_data = response.json()
     refresh_token = response.cookies.get("refresh_token", None)
 
@@ -91,7 +92,7 @@ class RefreshTestCase(TestCase):
       payload, settings.JWT_PRIVKEY, algorithm=settings.SIMPLE_JWT["ALGORITHM"]
     )
     self.client.cookies["refresh_token"] = expired_token
-    response = self.refresh()
+    response = self.client.get()
     response_data = response.json()
 
     self.assertEqual(response.status_code, 400)
@@ -103,7 +104,7 @@ class RefreshTestCase(TestCase):
     # Got refresh_token cookie on setUp method.
 
     del self.client.cookies["refresh_token"]
-    response = self.refresh()
+    response = self.client.get()
     response_data = response.json()
 
     self.assertEqual(response.status_code, 400)
@@ -115,7 +116,7 @@ class RefreshTestCase(TestCase):
     # Got refresh_token cookie on setUp method.
 
     self.client.cookies["refresh_token"] = "<invalid_refresh_token>"
-    response = self.refresh()
+    response = self.client.get()
     response_data = response.json()
 
     self.assertEqual(response.status_code, 400)
@@ -127,7 +128,7 @@ class RefreshTestCase(TestCase):
     # Got refresh_token cookie on setUp method.
 
     self.client.cookies["refresh_token"] = ""
-    response = self.refresh()
+    response = self.client.get()
     response_data = response.json()
 
     self.assertEqual(response.status_code, 400)
@@ -139,7 +140,7 @@ class RefreshTestCase(TestCase):
     # Got refresh_token cookie on setUp method.
 
     self.client.cookies["refresh_token"] = None
-    response = self.refresh()
+    response = self.client.get()
     response_data = response.json()
 
     self.assertEqual(response.status_code, 400)

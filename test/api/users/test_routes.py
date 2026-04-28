@@ -19,22 +19,22 @@ class UserUpdateRoutesTestCase(AuthenticatedTestCase):
   def setUpClass(cls):
     super().setUpClass()
     cls.setUpClassUser()
+    cls.setUpClassAuth()
 
   def setUp(self):
     super().setUp()
     self.client = APIClient(path_prefix=self.URL)
-    self.setUpAuth()
 
     # Set user email as valid for tests.
     self.user.is_email_valid = True
     self.user.save()
 
   def tearDown(self):
-    self.tearDownAuth()
     super().tearDown()
 
   @classmethod
   def tearDownClass(cls):
+    cls.tearDownClassAuth()
     cls.tearDownClassUser()
     super().tearDownClass()
 

@@ -12,15 +12,13 @@ from config import settings
 class LoginTestCase(TestCase):
   URL = "/api/users/auth/login"
 
-  def setUp(self):
-    self.client = Client()
-    self.login = lambda data, *args, **kwargs: self.client.post(
-      self.URL, data, content_type="application/json", *args, **kwargs
-    )
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
 
     # Create User
     try:
-      self.user = User.objects.create_user(
+      cls.user = User.objects.create_user(
         name="testuser",
         email="testuser.example@gmail.com",
         password="testpassword",
@@ -29,6 +27,24 @@ class LoginTestCase(TestCase):
     except Exception as e:
       raise Exception(
         f"Unknown exception while creating user for LoginTestCase!\nException: \n{e}"
+      )
+
+  def setUp(self):
+    self.client = Client()
+    self.login = lambda data, *args, **kwargs: self.client.post(
+      self.URL, data, content_type="application/json", *args, **kwargs
+    )
+
+  @classmethod
+  def tearDownClass(cls):
+    super().tearDownClass()
+
+    # Delete User
+    try:
+      cls.user.delete()
+    except Exception as e:
+      raise Exception(
+        f"Unknown exception while deleting user for LoginTestCase!\nException: \n{e}"
       )
 
   def test_user_logged_in_successfully(self):
