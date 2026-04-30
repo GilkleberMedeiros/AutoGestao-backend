@@ -3,12 +3,16 @@ Test API login endpoint
 """
 
 from django.test import TestCase, Client
+from django.test import override_settings
 import jwt
 
 from apps.users.models import User
 from config import settings
 
 
+# Replace django password hasher with md5 for faster login tests
+# Don't use bcrypt in test
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class LoginTestCase(TestCase):
   URL = "/api/users/auth/login"
 

@@ -4,7 +4,8 @@ Test JWTAuthMiddleware
 
 import jwt
 
-from test.api.base import AuthenticatedTestCase, APIClient
+from test.api.base import APIClient
+from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
 from apps.authentication.utils.jwt_auth import JWTAuth
 from config import settings

@@ -1,5 +1,6 @@
 import uuid
-from test.api.base import AuthenticatedTestCase, APIClient
+from test.api.base import APIClient
+from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
 from apps.projects_and_clients.models import Client, Project
 

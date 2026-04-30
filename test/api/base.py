@@ -2,7 +2,7 @@
 Base Test Client for API Testing.
 """
 
-from django.test import Client, TestCase
+from django.test import Client
 from django.http import HttpResponse
 
 
@@ -129,12 +129,49 @@ class APIClient(Client):
     return super().trace(path, *args, **kwargs)
 
 
-class APITestCase(TestCase):
+class AuthUserTestCaseMixin:
   """
-  Test case that uses the APIClient by default.
+  Creates a User specifically for authentication purposes.
   """
 
-  client_class = APIClient
+  # Should be set by subclass
+  user_create_data = None
+  user_create_model = None
+
+  # Will be set during setUpClassUser
+  user = None
+
+  @classmethod
+  def setUpClassUser(cls):
+    """Create test user for authentication."""
+    if cls.user:
+      return
+
+    email = cls.user_create_data.get("email")
+    cls.user = cls.user_create_model.objects.filter(email=email).first()
+    if cls.user:
+      return
+
+    try:
+      cls.user = cls.user_create_model.objects.create_user(**cls.user_create_data)
+    except Exception as e:
+      raise Exception(f"Error creating user for {cls.__name__}!\nException: {e}")
+
+  @classmethod
+  def tearDownClassUser(cls):
+    """Delete test user created in setUpClassUser."""
+    try:
+      if cls.user:
+        cls.user.delete()
+        cls.user = None
+    except Exception as e:
+      print(f"Warning: Error deleting user in {cls.__name__}: {e}")
+
+  def setUpUser(self):
+    self.setUpClassUser()
+
+  def tearDownUser(self):
+    self.tearDownClassUser()
 
 
 class JWTAuthenticatedTestCaseMixin:
@@ -160,7 +197,6 @@ class JWTAuthenticatedTestCaseMixin:
   client_class = APIClient
 
   login_url = "/api/users/auth/login"
-  logout_url = "/api/users/auth/logout"
   login_data = None
 
   # Will be set during setUpAuth
@@ -182,6 +218,9 @@ class JWTAuthenticatedTestCaseMixin:
       AssertionError: If login fails or credentials cannot be extracted
     """
     cls.client = cls.client_class()
+
+    if cls.credentials is not None:
+      return
 
     if not cls.login_data:
       raise AssertionError(
@@ -208,24 +247,12 @@ class JWTAuthenticatedTestCaseMixin:
   @classmethod
   def tearDownClassAuth(cls):
     """
-    Log out and clean up authentication.
+    Log out by cleaning up authentication.
 
-    This method sends a logout request to invalidate the session.
-    It does not raise exceptions if logout fails to avoid masking
-    test assertion errors.
+    This method only clean up login_response and credentials attributes.
     """
-    cls.client = cls.client_class()
-
-    try:
-      logout_response = cls.client.get(cls.logout_url)
-
-      if logout_response.status_code != 200:
-        print(f"Warning: Logout returned status code {logout_response.status_code}")
-    except Exception as e:
-      print(f"Warning: Error during logout: {e}")
-    finally:
-      cls.login_response = None
-      cls.credentials = None
+    cls.login_response = None
+    cls.credentials = None
 
   def setUpAuth(self):
     return self.setUpClassAuth()
@@ -266,63 +293,3 @@ class JWTAuthenticatedTestCaseMixin:
       "access": access_token,
       "refresh": refresh_token,
     }
-
-
-class AuthenticatedTestCase(APITestCase, JWTAuthenticatedTestCaseMixin):
-  """
-  Automanages authentication and user creation for testing.
-
-  This test case combines APITestCase and JWTAuthenticatedTestCaseMixin to provide:
-  - Automatic user creation and deletion
-  - Automatic JWT authentication for each test
-  - APIClient with sensible defaults
-
-  Set:
-    - self.setUpUser or cls.setUpClassUser to set up user before authenticating.
-    - self.setUpAuth or cls.setUpClassAuth to set up authentication.
-    - self.tearDownAuth or cls.tearDownClassAuth to tear down authentication.
-    - self.tearDownUser or cls.tearDownClassUser to delete created user.
-
-  Usage:
-    class MyAuthenticatedTestCase(AuthenticatedTestCase):
-      def test_authenticated_endpoint(self):
-        # User is automatically created
-        # Credentials are automatically set in setUp
-        response = self.client.get(
-          "/api/protected-endpoint",
-          headers={"Authorization": f"Bearer {self.credentials['access']}"}
-        )
-        self.assertEqual(response.status_code, 200)
-  """
-
-  # Should be set by subclass
-  user_create_data = None
-  user_create_model = None
-
-  login_data = None
-
-  # Will be set after setUpClass
-  user = None
-
-  @classmethod
-  def setUpClassUser(cls):
-    """Create test user for authentication."""
-    try:
-      cls.user = cls.user_create_model.objects.create_user(**cls.user_create_data)
-    except Exception as e:
-      raise Exception(f"Error creating user for {cls.__name__}!\nException: {e}")
-
-  @classmethod
-  def tearDownClassUser(cls):
-    """Delete test user created in setUpClassUser."""
-    try:
-      if cls.user:
-        cls.user.delete()
-    except Exception as e:
-      print(f"Warning: Error deleting user in {cls.__name__}: {e}")
-
-  def setUpUser(self):
-    self.setUpClassUser()
-
-  def tearDownUser(self):
-    self.tearDownClassUser()

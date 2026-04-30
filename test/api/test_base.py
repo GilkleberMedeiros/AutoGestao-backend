@@ -3,7 +3,8 @@ Tests for APIClient.
 """
 
 from django.test import TestCase
-from test.api.base import APIClient, APITestCase, JWTAuthenticatedTestCaseMixin
+from test.api.base import APIClient, JWTAuthenticatedTestCaseMixin
+from test.api.conftest import APITestCase
 from apps.users.models import User
 
 
@@ -87,7 +88,6 @@ class JWTAuthenticatedTestCaseMixinTestCase(TestCase):
   def test_jwt_mixin_has_correct_defaults(self):
     """Verify JWTAuthenticatedTestCaseMixin has correct class attributes."""
     self.assertEqual(JWTAuthenticatedTestCaseMixin.login_url, "/api/users/auth/login")
-    self.assertEqual(JWTAuthenticatedTestCaseMixin.logout_url, "/api/users/auth/logout")
     self.assertIsNone(JWTAuthenticatedTestCaseMixin.login_data)
 
   def test_extract_credentials_from_login_response(self):

@@ -6,7 +6,8 @@ from django.utils.timezone import get_current_timezone
 import jwt
 from datetime import datetime, timedelta
 
-from test.api.base import AuthenticatedTestCase, APIClient
+from test.api.base import APIClient
+from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
 from config import settings
 

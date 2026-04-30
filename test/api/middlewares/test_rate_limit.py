@@ -1,6 +1,6 @@
 from django.core.cache import caches
 
-from test.api.base import AuthenticatedTestCase
+from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
 
 

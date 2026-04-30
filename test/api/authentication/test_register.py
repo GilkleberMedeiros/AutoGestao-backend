@@ -2,13 +2,16 @@
 Test API register endpoint
 """
 
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from unittest.mock import patch
 from django.db import DatabaseError
 
 from apps.users.models import User
 
 
+# Replace django password hasher with md5 for faster register tests
+# Don't use bcrypt in test
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class RegisterTestCase(TestCase):
   def setUp(self):
     self.client = Client()
