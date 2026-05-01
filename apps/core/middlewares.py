@@ -154,9 +154,19 @@ class JWTAuthenticationMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
     r"^/?api/users/auth/me?$",
     r"^/?api/users/validate/.*$",
     r"^/?api/clients/?$",
-    r"^/?api/clients/[a-zA-Z0-9-/]+/?$",  # Bind to sub-routes that needs id on path.
+    r"^/?api/clients/[a-zA-Z0-9-]+/?$",  # Bind to sub-routes that needs id on path.
+    r"^/?api/clients/[a-zA-Z0-9-]+/emails/?$",
+    r"^/?api/clients/[a-zA-Z0-9-]+/emails/[a-zA-Z0-9-]+/?$",
+    r"^/?api/clients/emails/[a-zA-Z0-9-]+/?$",
+    r"^/?api/clients/[a-zA-Z0-9-]+/phones/?$",
+    r"^/?api/clients/[a-zA-Z0-9-]+/phones/[a-zA-Z0-9-]+/?$",
+    r"^/?api/clients/phones/[a-zA-Z0-9-]+/?$",
     r"^/?api/projects/?$",
-    r"^/?api/projects/[a-zA-Z0-9-/]+/?$",
+    r"^/?api/projects/[a-zA-Z0-9-]+/?$",
+    r"^/?api/projects/[a-zA-Z0-9-]+/close/?$",
+    r"^/?api/projects/[a-zA-Z0-9-]+/reopen/?$",
+    r"^/?api/projects/[a-zA-Z0-9-]+/tasks/?$",
+    r"^/?api/projects/[a-zA-Z0-9-]+/tasks/[a-zA-Z0-9-]+/?$",
   ]
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):
@@ -223,9 +233,19 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
   _routes = [
     r"^/?api/test-routes/middlewares/valid-email-permission-middleware/?$",  # Test route to test this middleware.
     r"^/?api/clients/?$",
-    r"^/?api/clients/[a-zA-Z0-9-/]+/?$",  # Bind to sub-routes that needs id on path.
+    r"^/?api/clients/[a-zA-Z0-9-]+/?$",  # Bind to sub-routes that needs id on path.
+    r"^/?api/clients/[a-zA-Z0-9-]+/emails/?$",
+    r"^/?api/clients/[a-zA-Z0-9-]+/emails/[a-zA-Z0-9-]+/?$",
+    r"^/?api/clients/emails/[a-zA-Z0-9-]+/?$",
+    r"^/?api/clients/[a-zA-Z0-9-]+/phones/?$",
+    r"^/?api/clients/[a-zA-Z0-9-]+/phones/[a-zA-Z0-9-]+/?$",
+    r"^/?api/clients/phones/[a-zA-Z0-9-]+/?$",
     r"^/?api/projects/?$",
-    r"^/?api/projects/[a-zA-Z0-9-/]+/?$",
+    r"^/?api/projects/[a-zA-Z0-9-]+/?$",
+    r"^/?api/projects/[a-zA-Z0-9-]+/close/?$",
+    r"^/?api/projects/[a-zA-Z0-9-]+/reopen/?$",
+    r"^/?api/projects/[a-zA-Z0-9-]+/tasks/?$",
+    r"^/?api/projects/[a-zA-Z0-9-]+/tasks/[a-zA-Z0-9-]+/?$",
   ]
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):
