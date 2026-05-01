@@ -135,7 +135,7 @@ class TestTaskService_Get(TestCase):
   @patch("apps.projects_and_clients.services.task.Task")
   def test_get_task_success(self, MockTask):
     user = MagicMock()
-    project_id = uuid.uuid4()
+    project_id = str(uuid.uuid4())
     task_id = str(uuid.uuid4())
 
     task_mock = MagicMock()

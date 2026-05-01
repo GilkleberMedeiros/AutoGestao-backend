@@ -44,7 +44,7 @@ class TaskService:
     task = Task.objects.filter(id=task_id, project__user=user).first()
     if not task:
       raise ResourceNotFoundError("Task not found.")
-    if task.project.id != project_id:
+    if str(task.project.id) != project_id:
       raise ResourceNotFoundError("Task not found in the given project.")
 
     return task
