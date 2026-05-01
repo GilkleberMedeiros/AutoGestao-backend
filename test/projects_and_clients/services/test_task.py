@@ -116,19 +116,7 @@ class TestTaskService_Create(TestCase):
 
 class TestTaskService_List(TestCase):
   @patch("apps.projects_and_clients.services.task.Task")
-  def test_list_tasks_no_project_filter(self, MockTask):
-    user = MagicMock()
-    mock_qs = MagicMock()
-    MockTask.objects.filter.return_value = mock_qs
-
-    result = TaskService.list(user, project_id=None)
-
-    MockTask.objects.filter.assert_called_once_with(project__user=user)
-    mock_qs.filter.assert_not_called()
-    self.assertEqual(result, mock_qs)
-
-  @patch("apps.projects_and_clients.services.task.Task")
-  def test_list_tasks_with_project_filter(self, MockTask):
+  def test_list_tasks_success(self, MockTask):
     user = MagicMock()
     project_id = str(uuid.uuid4())
     mock_qs = MagicMock()
@@ -137,8 +125,9 @@ class TestTaskService_List(TestCase):
 
     result = TaskService.list(user, project_id=project_id)
 
-    MockTask.objects.filter.assert_called_once_with(project__user=user)
-    mock_qs.filter.assert_called_once_with(project_id=project_id)
+    MockTask.objects.filter.assert_called_once_with(
+      project=project_id, project__user=user
+    )
     self.assertEqual(result, mock_qs)
 
 

@@ -35,9 +35,7 @@ class TaskService:
     user: User,
     project_id: str,
   ):
-    tasks = Task.objects.filter(project__user=user)
-    if project_id:
-      tasks = tasks.filter(project_id=project_id)
+    tasks = Task.objects.filter(project=project_id, project__user=user)
 
     return tasks
 
