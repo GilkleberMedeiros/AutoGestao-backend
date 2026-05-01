@@ -83,6 +83,18 @@ class EmailsRoute_List(BaseEmailTestCase):
     data = res.json()
     self.assertEqual(data.get("success"), False)
 
+  def test_list_emails_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.get(
+      f"{self.client_obj.id}/emails", headers={"Authorization": f"Bearer {token}"}
+    )
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
+
   def test_list_emails_invalid_client_returns_404(self):
     """Test if route returns 404 for a non-existent client."""
     token = self._get_valid_token()
@@ -125,6 +137,21 @@ class EmailsRoute_Create(BaseEmailTestCase):
     data = {"email": "new-api-test@example.com"}
     res = self.client.post(f"{self.client_obj.id}/emails", data=data)
     self.assertEqual(res.status_code, 401)
+
+  def test_create_email_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    data = {"email": "new-api-test@example.com"}
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.post(
+      f"{self.client_obj.id}/emails",
+      data=data,
+      headers={"Authorization": f"Bearer {token}"},
+    )
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
 
   def test_create_email_invalid_client_returns_404(self):
     """Test if route returns 404 for a non-existent client."""

@@ -78,6 +78,16 @@ class ProjectsRoute_List(BaseProjectTestCase):
     res = self.client.get("")
     self.assertEqual(res.status_code, 401)
 
+  def test_list_projects_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.get("", headers={"Authorization": f"Bearer {token}"})
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
+
 
 class ProjectsRoute_Get(BaseProjectTestCase):
   def test_get_project_success_outcome_validation(self):
@@ -94,6 +104,18 @@ class ProjectsRoute_Get(BaseProjectTestCase):
   def test_get_project_unauthenticated_returns_401(self):
     res = self.client.get(f"{self.project_obj.id}")
     self.assertEqual(res.status_code, 401)
+
+  def test_get_project_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.get(
+      f"{self.project_obj.id}", headers={"Authorization": f"Bearer {token}"}
+    )
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
 
   def test_get_project_invalid_id_returns_404(self):
     token = self._get_valid_token()
@@ -131,6 +153,22 @@ class ProjectsRoute_Create(BaseProjectTestCase):
     }
     res = self.client.post("", data=data)
     self.assertEqual(res.status_code, 401)
+
+  def test_create_project_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    data = {
+      "name": "New Project",
+      "client_id": str(self.client_obj.id),
+      "estimated_deadline": "2026-12-31",
+      "estimated_cost": 200.00,
+    }
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
 
   def test_create_project_client_not_found_returns_404(self):
     token = self._get_valid_token()
