@@ -27,6 +27,10 @@ class ProjectAlreadyOpenError(BussinessRuleError):
   pass
 
 
+class ProjectAlreadyClosedError(BussinessRuleError):
+  pass
+
+
 class ProjectNeverClosedError(BussinessRuleError):
   pass
 
@@ -116,6 +120,9 @@ class ProjectService:
   @staticmethod
   def close(user, project_id: str, data: ProjectCloseSchema) -> Project:
     project = ProjectService.get(user, project_id)
+    if project.status != "OPEN":
+      raise ProjectAlreadyClosedError("The project is already closed.")
+
     if data.status not in ["CONCLUDED", "PARTIALLY_CONCLUDED", "CANCELLED"]:
       raise InvalidCloseStatusError("Invalid close status.")
 

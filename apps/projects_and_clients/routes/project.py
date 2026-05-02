@@ -17,6 +17,7 @@ from apps.projects_and_clients.services.project import (
   ProjectClosedForEditError,
   InvalidCloseStatusError,
   ProjectAlreadyOpenError,
+  ProjectAlreadyClosedError,
   ProjectNeverClosedError,
   ReopenPeriodExpiredError,
 )
@@ -162,6 +163,8 @@ def close_project(request, project_id: str, data: ProjectCloseSchema):
       "success": False,
     }
   except InvalidCloseStatusError as e:
+    return 400, {"details": str(e), "success": False}
+  except ProjectAlreadyClosedError as e:
     return 400, {"details": str(e), "success": False}
 
   return 200, closed

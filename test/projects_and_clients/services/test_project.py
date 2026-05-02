@@ -10,6 +10,7 @@ from apps.projects_and_clients.services.project import (
   ProjectClosedForEditError,
   InvalidCloseStatusError,
   ProjectAlreadyOpenError,
+  ProjectAlreadyClosedError,
   ProjectNeverClosedError,
   ReopenPeriodExpiredError,
 )
@@ -239,6 +240,7 @@ class TestProjectService_Close(TestCase):
   def test_close_project(self, mock_get):
     user = MagicMock()
     project_mock = MagicMock()
+    project_mock.status = "OPEN"
     mock_get.return_value = project_mock
 
     data = ProjectCloseSchema(
@@ -254,9 +256,26 @@ class TestProjectService_Close(TestCase):
     project_mock.save.assert_called_once()
 
   @patch("apps.projects_and_clients.services.project.ProjectService.get")
+  def test_close_project_already_closed_fails(self, mock_get):
+    user = MagicMock()
+    project_mock = MagicMock()
+    project_mock.status = "CONCLUDED"
+    mock_get.return_value = project_mock
+
+    data = ProjectCloseSchema(
+      actual_deadline="2026-12-31",
+      actual_cost="100.00",
+      spent_time=timedelta(hours=100),
+      status="CONCLUDED",
+    )
+    with self.assertRaises(ProjectAlreadyClosedError):
+      ProjectService.close(user, "proj-id", data)
+
+  @patch("apps.projects_and_clients.services.project.ProjectService.get")
   def test_close_project_invalid_status(self, mock_get):
     user = MagicMock()
     project_mock = MagicMock()
+    project_mock.status = "OPEN"
     mock_get.return_value = project_mock
 
     data = ProjectCloseSchema(status="NOT_A_STATUS")
