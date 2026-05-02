@@ -7,35 +7,31 @@ from apps.projects_and_clients.schemas.project import (
   ProjectFilterSchema,
   ProjectCloseSchema,
 )
-from apps.core.exceptions import ResourceNotFoundError
+from apps.core.exceptions import ResourceNotFoundError, BusinessRuleError
 from datetime import timedelta
 
 
-class BussinessRuleError(Exception):
+class ProjectClosedForEditError(BusinessRuleError):
   pass
 
 
-class ProjectClosedForEditError(BussinessRuleError):
+class InvalidCloseStatusError(BusinessRuleError):
   pass
 
 
-class InvalidCloseStatusError(BussinessRuleError):
+class ProjectAlreadyOpenError(BusinessRuleError):
   pass
 
 
-class ProjectAlreadyOpenError(BussinessRuleError):
+class ProjectAlreadyClosedError(BusinessRuleError):
   pass
 
 
-class ProjectAlreadyClosedError(BussinessRuleError):
+class ProjectNeverClosedError(BusinessRuleError):
   pass
 
 
-class ProjectNeverClosedError(BussinessRuleError):
-  pass
-
-
-class ReopenPeriodExpiredError(BussinessRuleError):
+class ReopenPeriodExpiredError(BusinessRuleError):
   pass
 
 

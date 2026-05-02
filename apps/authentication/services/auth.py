@@ -1,30 +1,34 @@
-from apps.core.exceptions import ExternalServiceError
+from apps.core.exceptions import (
+  ExternalServiceError,
+  AuthenticationError,
+  ResourceAlreadyExistsError,
+)
 from apps.users.models import User
 from apps.authentication.schemas import LoginReq, RegisterReq
 from apps.authentication.utils.jwt_auth import TokenPair, JWTAuth
 
 
-class UserInvalidCredentialsError(Exception):
+class UserInvalidCredentialsError(AuthenticationError):
   def __init__(self, message: str = "User credentials are invalid."):
     self.message = message
 
 
-class UserEmailAlreadyExistsError(Exception):
+class UserEmailAlreadyExistsError(ResourceAlreadyExistsError):
   def __init__(self, message: str = "User email already exists."):
     self.message = message
 
 
-class UserPhoneAlreadyExistsError(Exception):
+class UserPhoneAlreadyExistsError(ResourceAlreadyExistsError):
   def __init__(self, message: str = "User phone already exists."):
     self.message = message
 
 
-class MissingRefreshTokenError(Exception):
+class MissingRefreshTokenError(AuthenticationError):
   def __init__(self, message: str = "Missing refresh token."):
     self.message = message
 
 
-class InvalidRefreshTokenError(Exception):
+class InvalidRefreshTokenError(AuthenticationError):
   def __init__(self, message: str = "Invalid refresh token."):
     self.message = message
 
