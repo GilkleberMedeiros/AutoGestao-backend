@@ -12,7 +12,7 @@ class Client(models.Model):
   user = models.ForeignKey(User, on_delete=models.CASCADE)
   name = models.CharField(max_length=255)
   # TODO: Add CPF validator to valid CPF format
-  cpf = models.CharField(max_length=14, unique=True, null=True, blank=True)
+  cpf = models.CharField(max_length=14, null=True, blank=True)
 
   def __str__(self):
     return self.name
