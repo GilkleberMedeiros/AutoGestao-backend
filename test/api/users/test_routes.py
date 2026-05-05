@@ -282,7 +282,6 @@ class UserUpdateRoutesTestCase(AuthenticatedTestCase):
       "email": "test2@example.com",
       "phone": self.user.phone,  # Phone is equal to self.user.phone
     }
-    print(self.user.phone)
     res = self._make_patch_request(data, {"Authorization": f"Bearer {token}"})
 
     self.assertEqual(res.status_code, 200)
