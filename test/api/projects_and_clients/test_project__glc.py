@@ -3,6 +3,7 @@ from test.api.base import APIClient
 from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
 from apps.projects_and_clients.models import Client, Project
+from apps.finances.models import MovGroup
 
 
 class BaseProjectTestCase(AuthenticatedTestCase):
@@ -180,3 +181,29 @@ class ProjectsRoute_Create(BaseProjectTestCase):
     }
     res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
     self.assertEqual(res.status_code, 404)
+
+  def test_create_project_automatically_creates_movimentation_group(self):
+    token = self._get_valid_token()
+    data = {
+      "name": "New Project",
+      "description": "test",
+      "estimated_deadline": "2026-12-31",
+      "estimated_cost": 200.00,
+      "colortag": "#000000",
+      "client_id": str(self.client_obj.id),
+    }
+
+    res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
+    res_data = res.json()
+
+    self.assertEqual(res.status_code, 201)
+
+    self.assertEqual(res_data["name"], "New Project")
+    self.assertIn("id", res_data)
+    proj_id = res_data["id"]
+
+    # Verify if the movimentation group was created and it's related to the project
+    mov_group_list = MovGroup.objects.filter(related_to=proj_id, relation="PROJECT")
+    self.assertEqual(mov_group_list.count(), 1)
+    mov_group_obj = mov_group_list.first()
+    self.assertEqual(mov_group_obj.user.id, self.user.id)
