@@ -1,5 +1,5 @@
 from apps.finances.models import MovGroup
-from apps.finances.schemas import (
+from apps.finances.schemas.movgroup import (
   CreateMovGroupReq,
   UpdateMovGroupReq,
   PartialUpdateMovGroupReq,
