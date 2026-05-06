@@ -6,7 +6,7 @@ from apps.projects_and_clients.models import Project
 from apps.users.models import User
 
 # Import the module to ensure the signal is registered
-import apps.finances.signals
+import apps.finances.signals  # noqa: F401
 
 
 class TestProjectSignal__CreateMovGroup(unittest.TestCase):
