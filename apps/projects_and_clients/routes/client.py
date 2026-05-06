@@ -5,7 +5,7 @@ Routes for client manipulation.
 from ninja import Router
 
 from apps.core.schemas.response import BaseAPIResponse, PaginatedAPIResponse
-from apps.core.exceptions import ResourceNotFoundError
+from apps.core.exceptions import ResourceNotFoundError, ResourceAlreadyExistsError
 from apps.core.utils.paginate import paginate_route
 from apps.projects_and_clients.schemas.requests.client import (
   ClientSchema,
@@ -18,7 +18,9 @@ from apps.projects_and_clients.services.client import ClientService
 router = Router()
 
 
-@router.post("", response={201: ClientSchema, 401: BaseAPIResponse})
+@router.post(
+  "", response={201: ClientSchema, 401: BaseAPIResponse, 409: BaseAPIResponse}
+)
 def create_client(request, data: CreateClientReq):
   """
   Create a new client.
@@ -26,9 +28,17 @@ def create_client(request, data: CreateClientReq):
   if not request.user.is_authenticated:
     return 401, {"details": "Unauthenticated", "success": False}
 
-  created = ClientService.create(
-    data.model_dump(exclude_none=True, exclude_unset=True), request.user
-  )
+  try:
+    created = ClientService.create(
+      data.model_dump(exclude_none=True, exclude_unset=True), request.user
+    )
+  except ResourceAlreadyExistsError:
+    return 409, {
+      "details": (
+        "Client with the given CPF/CNPJ already exists for the authenticated User."
+      ),
+      "success": False,
+    }
 
   return 201, created
 
@@ -70,7 +80,12 @@ def get_client(request, client_id: str):
 
 @router.put(
   "/{client_id}",
-  response={200: ClientSchema, 401: BaseAPIResponse, 404: BaseAPIResponse},
+  response={
+    200: ClientSchema,
+    401: BaseAPIResponse,
+    404: BaseAPIResponse,
+    409: BaseAPIResponse,
+  },
 )
 def update_client(request, client_id: str, data: UpdateClientReq):
   """
@@ -86,13 +101,23 @@ def update_client(request, client_id: str, data: UpdateClientReq):
     )
   except ResourceNotFoundError:
     return 404, {"details": f"Client with id {client_id}, not found.", "success": False}
+  except ResourceAlreadyExistsError:
+    return 409, {
+      "details": "Client with the given CPF/CNPJ already exists for the authenticated User.",
+      "success": False,
+    }
 
   return updated
 
 
 @router.patch(
   "/{client_id}",
-  response={200: ClientSchema, 401: BaseAPIResponse, 404: BaseAPIResponse},
+  response={
+    200: ClientSchema,
+    401: BaseAPIResponse,
+    404: BaseAPIResponse,
+    409: BaseAPIResponse,
+  },
 )
 def partial_update_client(request, client_id: str, data: PartialUpdateClientReq):
   """
@@ -109,6 +134,11 @@ def partial_update_client(request, client_id: str, data: PartialUpdateClientReq)
     )
   except ResourceNotFoundError:
     return 404, {"details": f"Client with id {client_id}, not found.", "success": False}
+  except ResourceAlreadyExistsError:
+    return 409, {
+      "details": "Client with the given CPF/CNPJ already exists for the authenticated User.",
+      "success": False,
+    }
 
   return updated
 

@@ -3,8 +3,48 @@ from unittest.mock import MagicMock, patch
 import uuid
 
 from django.db.utils import IntegrityError
-from apps.core.exceptions import ResourceNotFoundError
+from apps.core.exceptions import ResourceNotFoundError, ResourceAlreadyExistsError
 from apps.projects_and_clients.services.client import ClientService
+
+
+class TestClientService_ValidateUniqueConstraints(TestCase):
+  @patch("apps.projects_and_clients.services.client.Client")
+  def test_validate_unique_constraints_success(self, MockClient):
+    user = MagicMock()
+    data = {"cpf": "12345678901"}
+
+    mock_qs = MagicMock()
+    MockClient.objects.filter.return_value = mock_qs
+    mock_qs.exists.return_value = False
+
+    ClientService.validate_unique_constraints(user, data)
+    MockClient.objects.filter.assert_called_once_with(user=user, cpf="12345678901")
+
+  @patch("apps.projects_and_clients.services.client.Client")
+  def test_validate_unique_constraints_exists(self, MockClient):
+    user = MagicMock()
+    data = {"cpf": "12345678901"}
+
+    mock_qs = MagicMock()
+    MockClient.objects.filter.return_value = mock_qs
+    mock_qs.exists.return_value = True
+
+    with self.assertRaises(ResourceAlreadyExistsError):
+      ClientService.validate_unique_constraints(user, data)
+
+  @patch("apps.projects_and_clients.services.client.Client")
+  def test_validate_unique_constraints_with_exclude_id(self, MockClient):
+    user = MagicMock()
+    data = {"cpf": "12345678901"}
+
+    mock_qs = MagicMock()
+    MockClient.objects.filter.return_value = mock_qs
+    mock_qs.exclude.return_value = mock_qs
+    mock_qs.exists.return_value = False
+
+    ClientService.validate_unique_constraints(user, data, exclude_id="some-id")
+    MockClient.objects.filter.assert_called_once_with(user=user, cpf="12345678901")
+    mock_qs.exclude.assert_called_once_with(id="some-id")
 
 
 class TestClientService_Get(TestCase):
@@ -101,16 +141,25 @@ class TestClientService_Create(TestCase):
   @patch("apps.projects_and_clients.services.client.ClientPhone")
   @patch("apps.projects_and_clients.services.client.ClientEmail")
   @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
   def test_create_success_full_data_with_user_param(
-      self, MockClient, MockClientEmail, MockClientPhone, MockClientAddress, MockClientRating
+    self,
+    mock_validate,
+    MockClient,
+    MockClientEmail,
+    MockClientPhone,
+    MockClientAddress,
+    MockClientRating,
   ):
     """create method successfully creates and returns the client when receiving full data and user param."""
     mock_client = MagicMock()
     MockClient.objects.create.return_value = mock_client
 
     user_mock = MagicMock()
-    data = {
+    data = {  # Reference data
       "name": "Full Client Param",
       "cpf": "11122233344",
       "emails": ["full1@example.com", "full2@example.com"],
@@ -121,12 +170,14 @@ class TestClientService_Create(TestCase):
       },
       "rating": {"score": 4.5, "comment": "Great client"},
     }
+    data_copy = data.copy()  # Copied cause create method mutates the data!
 
-    client = ClientService.create(data.copy(), user=user_mock)
+    client = ClientService.create(data_copy, user=user_mock)
 
+    mock_validate.assert_called_once_with(user_mock, data_copy)
     self.assertEqual(client, mock_client)
     MockClient.objects.create.assert_called_once_with(
-        user=user_mock, name="Full Client Param", cpf="11122233344"
+      user=user_mock, name="Full Client Param", cpf="11122233344"
     )
 
     # Check bulk_create calls (they use list comprehensions, so any argument is passed)
@@ -134,18 +185,21 @@ class TestClientService_Create(TestCase):
     MockClientPhone.objects.bulk_create.assert_called_once()
 
     MockClientAddress.objects.create.assert_called_once_with(
-        client=mock_client, state="SP", city="Sao Paulo"
+      client=mock_client, state="SP", city="Sao Paulo"
     )
     MockClientRating.objects.create.assert_called_once_with(
-        client=mock_client, score=4.5, comment="Great client"
+      client=mock_client, score=4.5, comment="Great client"
     )
 
   @patch("apps.projects_and_clients.services.client.ClientPhone")
   @patch("apps.projects_and_clients.services.client.ClientEmail")
   @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
   def test_create_success_full_data_with_user_in_data(
-      self, MockClient, MockClientEmail, MockClientPhone
+    self, mock_validate, MockClient, MockClientEmail, MockClientPhone
   ):
     """create method successfully creates and returns client when receiving full data with user within it."""
     mock_client = MagicMock()
@@ -164,14 +218,17 @@ class TestClientService_Create(TestCase):
 
     self.assertEqual(client, mock_client)
     MockClient.objects.create.assert_called_once_with(
-        user=user_mock, name="Full Client Data", cpf="55566677788"
+      user=user_mock, name="Full Client Data", cpf="55566677788"
     )
     MockClientEmail.objects.bulk_create.assert_called_once()
     MockClientPhone.objects.bulk_create.assert_called_once()
 
   @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
-  def test_create_success_minimum_data_with_user_param(self, MockClient):
+  def test_create_success_minimum_data_with_user_param(self, mock_validate, MockClient):
     """create method successfully creates and returns client when receiving minimum data and user as param."""
     mock_client = MagicMock()
     MockClient.objects.create.return_value = mock_client
@@ -201,16 +258,27 @@ class TestClientService_Update(TestCase):
   @patch("apps.projects_and_clients.services.client.ClientAddress")
   @patch("apps.projects_and_clients.services.client.ClientPhone")
   @patch("apps.projects_and_clients.services.client.ClientEmail")
+  @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
   def test_update_success_full_data_with_user_param(
-      self, MockClientEmail, MockClientPhone, MockClientAddress, MockClientRating, mock_get
+    self,
+    mock_validate,
+    MockClient,
+    MockClientEmail,
+    MockClientPhone,
+    MockClientAddress,
+    MockClientRating,
+    mock_get,
   ):
     """update method successfully updates and return updated client model when passing user as param and full data."""
     mock_client = MagicMock()
+    mock_client.id = "test-id"
     mock_get.return_value = mock_client
-
-    user_mock = MagicMock()
-    data = {
+    mock_client.user = user_mock = MagicMock()
+    data = {  # Refence data
       "name": "Updated Name",
       "cpf": "22222222222",
       "emails": ["new@example.com", "new2@example.com"],
@@ -221,10 +289,14 @@ class TestClientService_Update(TestCase):
       },
       "rating": {"score": 5.0, "comment": "Excellent"},
     }
+    data_copy = data.copy()  # Copied cause update method mutates the data!
 
-    updated = ClientService.update("test-id", data.copy(), user=user_mock)
+    updated = ClientService.update(mock_client.id, data_copy, user=user_mock)
 
-    mock_get.assert_called_once_with("test-id", user_mock)
+    mock_validate.assert_called_once_with(
+      user_mock, data_copy, exclude_id=mock_client.id
+    )
+    mock_get.assert_called_once_with(mock_client.id, user_mock)
     self.assertEqual(updated.name, "Updated Name")
     self.assertEqual(updated.cpf, "22222222222")
     mock_client.save.assert_called_once()
@@ -238,10 +310,10 @@ class TestClientService_Update(TestCase):
     MockClientPhone.objects.bulk_create.assert_called_once()
 
     MockClientAddress.objects.update_or_create.assert_called_once_with(
-        client=mock_client, defaults={"state": "RJ", "city": "New City"}
+      client=mock_client, defaults={"state": "RJ", "city": "New City"}
     )
     MockClientRating.objects.update_or_create.assert_called_once_with(
-        client=mock_client, defaults={"score": 5.0, "comment": "Excellent"}
+      client=mock_client, defaults={"score": 5.0, "comment": "Excellent"}
     )
 
   @patch("apps.projects_and_clients.services.client.ClientService.get")
@@ -249,10 +321,24 @@ class TestClientService_Update(TestCase):
   @patch("apps.projects_and_clients.services.client.ClientAddress")
   @patch("apps.projects_and_clients.services.client.ClientPhone")
   @patch("apps.projects_and_clients.services.client.ClientEmail")
+  @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
-  def test_update_success_no_user_param(self, MockClientEmail, MockClientPhone, MockClientAddress, MockClientRating, mock_get):
+  def test_update_success_no_user_param(
+    self,
+    mock_validate,
+    MockClient,
+    MockClientEmail,
+    MockClientPhone,
+    MockClientAddress,
+    MockClientRating,
+    mock_get,
+  ):
     """update method successfully updates and return updated client model when not parsing user."""
     mock_client = MagicMock()
+    mock_client.user = MagicMock()
     mock_get.return_value = mock_client
     data = {"name": "Updated Name No User"}
     updated = ClientService.update("test-id", data.copy())
@@ -265,12 +351,25 @@ class TestClientService_Update(TestCase):
   @patch("apps.projects_and_clients.services.client.ClientAddress")
   @patch("apps.projects_and_clients.services.client.ClientPhone")
   @patch("apps.projects_and_clients.services.client.ClientEmail")
+  @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
-  def test_update_success_required_data_only(self, MockClientEmail, MockClientPhone, MockClientAddress, MockClientRating, mock_get):
+  def test_update_success_required_data_only(
+    self,
+    mock_validate,
+    MockClient,
+    MockClientEmail,
+    MockClientPhone,
+    MockClientAddress,
+    MockClientRating,
+    mock_get,
+  ):
     """update method successfully updates and return updated client model when passing only the required data."""
     mock_client = MagicMock()
+    mock_client.user = user_mock = MagicMock()
     mock_get.return_value = mock_client
-    user_mock = MagicMock()
     data = {"name": "Required Only", "cpf": "33333333333"}
     updated = ClientService.update("test-id", data.copy(), user=user_mock)
     mock_get.assert_called_once_with("test-id", user_mock)
@@ -283,15 +382,25 @@ class TestClientService_Update(TestCase):
   @patch("apps.projects_and_clients.services.client.ClientAddress")
   @patch("apps.projects_and_clients.services.client.ClientPhone")
   @patch("apps.projects_and_clients.services.client.ClientEmail")
+  @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
   def test_update_deletes_unspecified_nested_collections(
-      self, MockClientEmail, MockClientPhone, MockClientAddress, MockClientRating, mock_get
+    self,
+    mock_validate,
+    MockClient,
+    MockClientEmail,
+    MockClientPhone,
+    MockClientAddress,
+    MockClientRating,
+    mock_get,
   ):
     """update method deletes nested collections that where not specified within data."""
     mock_client = MagicMock()
+    mock_client.user = user_mock = MagicMock()
     mock_get.return_value = mock_client
-
-    user_mock = MagicMock()
     data = {"name": "Rest of Fields will be Deleted"}
 
     updated = ClientService.update("test-id", data.copy(), user=user_mock)
@@ -320,9 +429,20 @@ class TestClientService_Update(TestCase):
   @patch("apps.projects_and_clients.services.client.ClientAddress")
   @patch("apps.projects_and_clients.services.client.ClientPhone")
   @patch("apps.projects_and_clients.services.client.ClientEmail")
+  @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
   def test_update_replaces_and_deletes_nested_collections(
-      self, MockClientEmail, MockClientPhone, MockClientAddress, MockClientRating, mock_get
+    self,
+    mock_validate,
+    MockClient,
+    MockClientEmail,
+    MockClientPhone,
+    MockClientAddress,
+    MockClientRating,
+    mock_get,
   ):
     """
     update method fully replace nested collections
@@ -330,9 +450,8 @@ class TestClientService_Update(TestCase):
     instead of appending.
     """
     mock_client = MagicMock()
+    mock_client.user = user_mock = MagicMock()
     mock_get.return_value = mock_client
-
-    user_mock = MagicMock()
     rating = {"score": 0, "comment": "Deleted"}
     data = {
       "name": "Deleted Collections",
@@ -345,7 +464,7 @@ class TestClientService_Update(TestCase):
     updated = ClientService.update("test-id", data.copy(), user=user_mock)
 
     self.assertEqual(updated.name, "Deleted Collections")
-    
+
     MockClientEmail.objects.filter.return_value.delete.assert_called_once()
     MockClientEmail.objects.bulk_create.assert_not_called()
 
@@ -353,9 +472,9 @@ class TestClientService_Update(TestCase):
     MockClientPhone.objects.bulk_create.assert_not_called()
 
     MockClientAddress.objects.filter.return_value.delete.assert_called_once()
-    
+
     MockClientRating.objects.update_or_create.assert_called_once_with(
-        client=mock_client, defaults=rating
+      client=mock_client, defaults=rating
     )
 
   @patch("apps.projects_and_clients.services.client.ClientService.get")
@@ -379,15 +498,25 @@ class TestClientService_Update(TestCase):
 
 class TestClientService_PartialUpdate(TestCase):
   @patch("apps.projects_and_clients.services.client.ClientService.get")
+  @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
-  def test_partial_update_success_no_user_param(self, mock_get):
+  def test_partial_update_success_no_user_param(
+    self, mock_validate, MockClient, mock_get
+  ):
     """partial_update method successfully updates and return updated client model when not parsing user."""
-    mock_client = MagicMock()
+    mock_client = MagicMock(id="test-id")
+    mock_client.user = MagicMock()
     mock_get.return_value = mock_client
 
     data = {"name": "Updated Name No User"}
     updated = ClientService.partial_update("test-id", data.copy())
 
+    mock_validate.assert_called_once_with(
+      mock_client.user, data, exclude_id=mock_client.id
+    )
     self.assertEqual(updated.name, "Updated Name No User")
     mock_client.save.assert_called_once()
     mock_get.assert_called_once_with("test-id", None)
@@ -397,15 +526,25 @@ class TestClientService_PartialUpdate(TestCase):
   @patch("apps.projects_and_clients.services.client.ClientAddress")
   @patch("apps.projects_and_clients.services.client.ClientPhone")
   @patch("apps.projects_and_clients.services.client.ClientEmail")
+  @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
   def test_partial_update_ignores_unspecified_nested_collections(
-      self, MockClientEmail, MockClientPhone, MockClientAddress, MockClientRating, mock_get
+    self,
+    mock_validate,
+    MockClient,
+    MockClientEmail,
+    MockClientPhone,
+    MockClientAddress,
+    MockClientRating,
+    mock_get,
   ):
     """partial_update method ignores a nested collection when it is not specified in given data."""
     mock_client = MagicMock()
+    mock_client.user = user_mock = MagicMock()
     mock_get.return_value = mock_client
-
-    user_mock = MagicMock()
     data = {"name": "Only Name Partial Update"}
 
     updated = ClientService.partial_update("test-id", data.copy(), user=user_mock)
@@ -421,15 +560,18 @@ class TestClientService_PartialUpdate(TestCase):
   @patch("apps.projects_and_clients.services.client.ClientService.get")
   @patch("apps.projects_and_clients.services.client.ClientRating")
   @patch("apps.projects_and_clients.services.client.ClientEmail")
+  @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
   def test_partial_update_erases_nested_collection_when_none_or_empty(
-      self, MockClientEmail, MockClientRating, mock_get
+    self, mock_validate, MockClient, MockClientEmail, MockClientRating, mock_get
   ):
     """partial_update method only erases a nested collection if it is explicitly specified within data as none or empty data."""
     mock_client = MagicMock()
+    mock_client.user = user_mock = MagicMock()
     mock_get.return_value = mock_client
-
-    user_mock = MagicMock()
     data = {
       "emails": [],  # specifies empty list, should delete all
       "rating": None,  # specifies None, should delete
@@ -448,15 +590,18 @@ class TestClientService_PartialUpdate(TestCase):
   @patch("apps.projects_and_clients.services.client.ClientService.get")
   @patch("apps.projects_and_clients.services.client.ClientAddress")
   @patch("apps.projects_and_clients.services.client.ClientPhone")
+  @patch("apps.projects_and_clients.services.client.Client")
+  @patch(
+    "apps.projects_and_clients.services.client.ClientService.validate_unique_constraints"
+  )
   @patch("apps.projects_and_clients.services.client.transaction.atomic", lambda f: f)
   def test_partial_update_updates_only_non_required_data(
-      self, MockClientPhone, MockClientAddress, mock_get
+    self, mock_validate, MockClient, MockClientPhone, MockClientAddress, mock_get
   ):
     """partial_update method can update only non-required data like nested collections."""
     mock_client = MagicMock()
+    mock_client.user = user_mock = MagicMock()
     mock_get.return_value = mock_client
-
-    user_mock = MagicMock()
     data = {
       "phones": ["+5511888888888", "+5511777777777"],
       "address": {
@@ -472,7 +617,7 @@ class TestClientService_PartialUpdate(TestCase):
     MockClientPhone.objects.bulk_create.assert_called_once()
 
     MockClientAddress.objects.update_or_create.assert_called_once_with(
-        client=mock_client, defaults={"state": "RJ", "city": "New City"}
+      client=mock_client, defaults={"state": "RJ", "city": "New City"}
     )
 
   @patch("apps.projects_and_clients.services.client.ClientService.get")

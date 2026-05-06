@@ -280,3 +280,45 @@ class ClientsRoute_Create(BaseClientTestCase):
       headers={"Authorization": f"Bearer {token}"},
     )
     self.assertEqual(res.status_code, 422)
+
+  def test_create_client_duplicate_cpf_for_same_user_returns_409(self):
+    """A user cannot create two clients with the same CPF."""
+    token = self._get_valid_token()
+    # client_obj already has cpf="12345678901"
+    data = {"name": "Duplicate CPF Client", "cpf": "12345678901"}
+
+    res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
+    self.assertEqual(res.status_code, 409)
+    self.assertIn("already exists for the authenticated User", res.json()["details"])
+
+  def test_create_client_same_cpf_for_different_users_returns_201(self):
+    """Two different users CAN have clients with the same CPF."""
+    # First user already has a client with CPF 12345678901
+
+    # Create and login as a second user
+    second_user_data = {
+      "name": "seconduser",
+      "email": "second@example.com",
+      "password": "testpassword",
+      "phone": "5584999999998",
+      "is_email_valid": True,
+    }
+    second_user = User.objects.create_user(**second_user_data)
+    
+    # Login to get token for second user
+    login_res = APIClient().post(
+      "/api/users/auth/login", 
+      data={"email": "second@example.com", "password": "testpassword"}
+    )
+    second_token = login_res.json()["access"]
+
+    # Try to create client with same CPF for second user
+    data = {"name": "Client for Second User", "cpf": "12345678901"}
+    res = self.client.post("", data=data, headers={"Authorization": f"Bearer {second_token}"})
+    
+    self.assertEqual(res.status_code, 201)
+    self.assertEqual(res.json()["cpf"], "12345678901")
+
+    # Cleanup
+    second_user.delete()
+

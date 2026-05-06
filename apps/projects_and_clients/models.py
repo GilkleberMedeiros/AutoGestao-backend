@@ -14,6 +14,11 @@ class Client(models.Model):
   # TODO: Add CPF validator to valid CPF format
   cpf = models.CharField(max_length=14, null=True, blank=True)
 
+  class Meta:
+    constraints = [
+      models.UniqueConstraint(fields=["user", "cpf"], name="user_client_cpf_unique")
+    ]
+
   def __str__(self):
     return self.name
 
