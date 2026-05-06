@@ -3,13 +3,13 @@ from ninja import Router
 from apps.core.exceptions import ResourceNotFoundError
 from apps.core.schemas.response import BaseAPIResponse, PaginatedAPIResponse
 from apps.core.utils.paginate import paginate_route
-from apps.finances.schemas import (
+from apps.finances.schemas.movgroup import (
   MovGroupSchema,
   CreateMovGroupReq,
   UpdateMovGroupReq,
   PartialUpdateMovGroupReq,
 )
-from apps.finances.services import (
+from apps.finances.services.movgroup import (
   MovGroupService,
   MovGroupNameAlreadyExistsError,
 )
