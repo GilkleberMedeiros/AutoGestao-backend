@@ -18,7 +18,9 @@ router = Router()
   "",
   response={201: MovimentationSchema, 401: BaseAPIResponse, 404: BaseAPIResponse},
 )
-def create_movimentation(request, movgroup_id: str = Path(...), data: CreateMovimentationReq = None):
+def create_movimentation(
+  request, movgroup_id: str = Path(...), data: CreateMovimentationReq = None
+):
   if not request.user.is_authenticated:
     return 401, {"details": "Unauthenticated", "success": False}
 
@@ -36,7 +38,7 @@ def create_movimentation(request, movgroup_id: str = Path(...), data: CreateMovi
 @router.get(
   "", response={200: PaginatedAPIResponse[MovimentationSchema], 401: BaseAPIResponse}
 )
-@paginate_route(per_page=250)
+@paginate_route
 def list_movimentations(request, movgroup_id: str = Path(...)):
   if not request.user.is_authenticated:
     return 401, {"details": "Unauthenticated", "success": False}
@@ -49,7 +51,9 @@ def list_movimentations(request, movgroup_id: str = Path(...)):
   "/{movimentation_id}",
   response={200: MovimentationSchema, 401: BaseAPIResponse, 404: BaseAPIResponse},
 )
-def get_movimentation(request, movgroup_id: str = Path(...), movimentation_id: str = Path(...)):
+def get_movimentation(
+  request, movgroup_id: str = Path(...), movimentation_id: str = Path(...)
+):
   if not request.user.is_authenticated:
     return 401, {"details": "Unauthenticated", "success": False}
 
@@ -125,7 +129,9 @@ def partial_update_movimentation(
   response={200: BaseAPIResponse, 401: BaseAPIResponse, 404: BaseAPIResponse},
 )
 def delete_movimentation(
-  request, movgroup_id: str = Path(...), movimentation_id: str = Path(...),
+  request,
+  movgroup_id: str = Path(...),
+  movimentation_id: str = Path(...),
 ):
   if not request.user.is_authenticated:
     return 401, {"details": "Unauthenticated", "success": False}

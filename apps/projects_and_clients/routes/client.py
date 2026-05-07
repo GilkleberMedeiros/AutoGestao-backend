@@ -3,6 +3,7 @@ Routes for client manipulation.
 """
 
 from ninja import Router
+from django.http import HttpRequest
 
 from apps.core.schemas.response import BaseAPIResponse, PaginatedAPIResponse
 from apps.core.exceptions import ResourceNotFoundError, ResourceAlreadyExistsError
@@ -46,8 +47,8 @@ def create_client(request, data: CreateClientReq):
 @router.get(
   "", response={200: PaginatedAPIResponse[ClientSchema], 401: BaseAPIResponse}
 )
-@paginate_route(per_page=250)
-def list_clients(request):
+@paginate_route
+def list_clients(request: HttpRequest):
   """
   List all clients for the authenticated user.
   """

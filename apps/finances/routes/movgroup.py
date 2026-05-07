@@ -41,7 +41,7 @@ def create_mov_group(request, data: CreateMovGroupReq):
 @router.get(
   "", response={200: PaginatedAPIResponse[MovGroupSchema], 401: BaseAPIResponse}
 )
-@paginate_route(per_page=250)
+@paginate_route
 def list_mov_groups(request):
   if not request.user.is_authenticated:
     return 401, {"details": "Unauthenticated", "success": False}

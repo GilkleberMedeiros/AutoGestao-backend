@@ -43,7 +43,7 @@ def create_project(request, data: CreateProjectReq):
 @router.get(
   "", response={200: PaginatedAPIResponse[ProjectSchema], 401: BaseAPIResponse}
 )
-@paginate_route(per_page=250)
+@paginate_route
 def list_projects(request, filters: ProjectFilterSchema = Query(...)):
   if not request.user.is_authenticated:
     return 401, {"details": "Unauthenticated", "success": False}

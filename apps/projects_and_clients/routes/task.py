@@ -37,7 +37,7 @@ def create_task(request, project_id: str, data: CreateTaskReq):
     404: BaseAPIResponse,
   },
 )
-@paginate_route(per_page=250)
+@paginate_route
 def list_tasks(request, project_id: str):
   tasks = TaskService.list(request.user, project_id)
 

@@ -40,8 +40,8 @@ def create_email(request, client_id: str, data: AddClientEmailReq):
     404: BaseAPIResponse,
   },
 )
-@paginate_route(per_page=250)
-def list_emails(request, client_id: str, page: int = 1):
+@paginate_route
+def list_emails(request, client_id: str):
   """
   List all emails for a specific client.
   """
