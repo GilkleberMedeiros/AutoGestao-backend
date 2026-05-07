@@ -288,12 +288,8 @@ class RateLimitMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
       "path_pattern": r"^/?api/test-routes/middlewares/rate-limit-middleware/?$",
       "time_ms": 500,
       "http_methods": "*",
-    },
-    {
-      "path_pattern": r"^/?api/.*?$",
-      "time_ms": 500,
-      "http_methods": "*",
     },  # 500ms == 2 requests per second
+    # Removed rate limit from production.
   ]
 
   # Only apply rate limiting to tests routes if testing is enabled.
