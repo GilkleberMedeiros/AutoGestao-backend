@@ -18,7 +18,7 @@ class MovGroup(models.Model):
   name = models.CharField(max_length=127)
   description = models.TextField(max_length=512, blank=True, null=True)
 
-  related_to = models.UUIDField(null=True, blank=True)
+  related_to = models.UUIDField(null=True, blank=True, db_index=True)
   relation = models.CharField(
     max_length=22, choices=RELATION_CHOICES, default="NORELATION", editable=False
   )
