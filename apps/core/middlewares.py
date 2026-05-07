@@ -3,7 +3,7 @@ from django.conf import settings
 from django.core.cache import caches
 
 from abc import ABC, abstractmethod
-from typing import Callable, Any, AnyStr, Tuple, Generator
+from typing import Callable, Any, AnyStr, Generator, TypedDict, Literal
 import re
 import json
 
@@ -35,28 +35,14 @@ class BaseMiddleware(ABC):
 
 class RegexMiddlewareMixin:
   """
-  This Mixin provides methods to match routes using regex.
+  This Mixin provides a method to match routes path using regex.
   """
 
   @staticmethod
-  def get_routes_match(routes: list[str], path: str) -> list[re.Match[AnyStr]]:
-    matchs = []
-
-    for route in routes:
-      m = re.match(route, path)
-      if m:
-        matchs.append(m)
-
-    return matchs
-
-  @staticmethod
-  def get_first_route_match(routes: list[str], path: str) -> re.Match[AnyStr] | None:
-    for route in routes:
-      m = re.match(route, path)
-      if m:
-        return m
-
-    return None
+  def get_pattern_match(path_pattern: str | re.Pattern[AnyStr], path: str) -> bool:
+    if isinstance(path_pattern, str):
+      path_pattern = re.compile(path_pattern)
+    return path_pattern.match(path)
 
 
 class HTTPMethodMiddlewareMixin:
@@ -75,45 +61,58 @@ class HTTPMethodMiddlewareMixin:
     return False
 
 
+class RouteSpecification(TypedDict):
+  path_pattern: re.Pattern[AnyStr] | str
+  http_methods: Literal["*"] | list[str] = "*"
+
+
 class MatchRouteMiddlewareMixin(RegexMiddlewareMixin, HTTPMethodMiddlewareMixin):
   """
   This high level Mixin provides methods to match routes through regex and HTTP methods.
+  _routes param should be either a str (using default ALL_HTTP_METHODS) or a dict as RouteSpecification.
   """
 
-  _routes: list[tuple[str, list[str]]] | list[str] = []
+  _routes: list[RouteSpecification | str] = []
+
+  def check_match(self, request: HttpRequest, route_spec: RouteSpecification) -> bool:
+    """
+    Check if a request matches a route specification. All route checks are made here.
+    """
+    return self.get_pattern_match(
+      route_spec["path_pattern"], request.path
+    ) and self.get_http_method_match(request, route_spec["http_methods"])
 
   def get_routes_match(
-    self, request: HttpRequest, routes: list[str | tuple[str, list[str]]] = None
-  ) -> list[re.Match[AnyStr]]:
+    self, request: HttpRequest, routes: list[RouteSpecification | str] = None
+  ) -> list[RouteSpecification]:
     matchs = []
     if routes is None:
       routes = self._routes
 
-    for route, http_methods in self._iter_routes(request):
-      m = re.match(route, request.path)
+    for route_spec in self._iter_routes(request, routes):
+      m = self.check_match(request, route_spec)
       # Verify if the route matches and the HTTP method is allowed.
-      if m and self.get_http_method_match(request, http_methods):
-        matchs.append(m)
+      if m:
+        matchs.append(route_spec)
 
     return matchs
 
   def get_first_route_match(
-    self, request: HttpRequest, routes: list[str | tuple[str, list[str]]] = None
-  ) -> re.Match[AnyStr] | None:
+    self, request: HttpRequest, routes: list[RouteSpecification | str] = None
+  ) -> RouteSpecification | None:
     if routes is None:
       routes = self._routes
 
-    for route, http_methods in self._iter_routes(request):
-      m = re.match(route, request.path)
-      # Verify if the route matches and the HTTP method is allowed.
-      if m and self.get_http_method_match(request, http_methods):
-        return m
+    for route_spec in self._iter_routes(request, routes):
+      m = self.check_match(request, route_spec)
+      if m:
+        return route_spec
 
     return None
 
   def _iter_routes(
-    self, request: HttpRequest, routes: list[str | tuple[str, list[str]]] = None
-  ) -> Generator[Tuple[str, list[str]], None, None]:
+    self, request: HttpRequest, routes: list[str | RouteSpecification] = None
+  ) -> Generator[RouteSpecification, None, None]:
     """
     Iterate over the routes defined in _routes. Handling its particularities such as:
       - '*' and '["*"]' shorthands that indicates that all HTTP methods are allowed.
@@ -123,25 +122,18 @@ class MatchRouteMiddlewareMixin(RegexMiddlewareMixin, HTTPMethodMiddlewareMixin)
     if routes is None:
       routes = self._routes
 
-    routes_len = len(routes)
-
-    if routes_len == 0:
-      return
-
     for route_spec in routes:
-      if isinstance(route_spec, tuple):
-        route, http_methods = route_spec
+      if isinstance(route_spec, str):
+        route_spec: RouteSpecification = {
+          "path_pattern": route_spec,
+          "http_methods": self.ALL_HTTP_METHODS,
+        }
 
-        # '*' and '["*"]' are shorthands to indicate that all HTTP methods are allowed.
-        if http_methods == "*" or http_methods == ["*"]:
-          yield route, self.ALL_HTTP_METHODS
-          continue
+      if route_spec["http_methods"] == "*" or route_spec["http_methods"] == ["*"]:
+        route_spec = route_spec.copy()
+        route_spec["http_methods"] = self.ALL_HTTP_METHODS
 
-        yield route_spec
-      # If route_spec is not a tuple, it means it's just a route string.
-      # So we yield it with a default list of HTTP methods.
-      else:
-        yield route_spec, self.ALL_HTTP_METHODS
+      yield route_spec
 
     return
 
@@ -281,65 +273,47 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
     )
 
 
+class RateLimitRouteSpecification(RouteSpecification):
+  time_ms: int
+
+
 class RateLimitMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
   """
   This middleware implements rate-limiting.
   It overrides the mixin methods to support a third parameter: time in milliseconds.
   """
 
-  _routes: list[tuple[str, str | list[str], int]] = [
-    (
-      r"^/?api/test-routes/middlewares/rate-limit-middleware/?$",
-      "*",
-      500,
-    ),
-    (
-      r"^/?api/.*?$",
-      "*",
-      500,
-    ),  # 500ms == 2 requests per second
+  _routes: list[RateLimitRouteSpecification] = [
+    {
+      "path_pattern": r"^/?api/test-routes/middlewares/rate-limit-middleware/?$",
+      "time_ms": 500,
+      "http_methods": "*",
+    },
+    {
+      "path_pattern": r"^/?api/.*?$",
+      "time_ms": 500,
+      "http_methods": "*",
+    },  # 500ms == 2 requests per second
   ]
 
-  # Only apply rate limiting if to rate limiting tests routes if testing is enabled.
+  # Only apply rate limiting to tests routes if testing is enabled.
   if settings.TESTING:
     _routes = [
-      (
-        r"^/?api/test-routes/middlewares/rate-limit-middleware/?$",
-        "*",
-        500,
-      )
+      {
+        "path_pattern": r"^/?api/test-routes/middlewares/rate-limit-middleware/?$",
+        "time_ms": 500,
+        "http_methods": "*",
+      }
     ]
-
-  def _iter_routes(self, request: HttpRequest):
-    if not self._routes:
-      return
-
-    for route_info in self._routes:
-      if len(route_info) == 3:
-        route, http_methods, rate_limit_ms = route_info
-        if http_methods == "*" or http_methods == ["*"]:
-          http_methods = self.ALL_HTTP_METHODS
-
-        yield route, http_methods, rate_limit_ms
-
-  def get_first_route_match_with_limit(
-    self, request: HttpRequest
-  ) -> tuple[re.Match[AnyStr], int] | tuple[None, None]:
-    for route, http_methods, rate_limit_ms in self._iter_routes(request):
-      m = re.match(route, request.path)
-      if m and self.get_http_method_match(request, http_methods):
-        return m, rate_limit_ms
-
-    return None, None
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):
     self.get_response = get_response
     self.cache_db = caches["default"]
 
   def __call__(self, request: HttpRequest) -> HttpResponse:
-    match_route, rate_limit_ms = self.get_first_route_match_with_limit(request)  # type: ignore
+    match_route = self.get_first_route_match(request)  # type: ignore
 
-    if match_route is not None and rate_limit_ms is not None:
+    if match_route is not None and match_route.get("time_ms") is not None:
       # Use User ID, if authenticated, and IP address to identify the user
       user = getattr(request, "user", None)
       ip_address = request.META.get("REMOTE_ADDR", "unknown-ip")
@@ -355,7 +329,7 @@ class RateLimitMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
         )
       else:
         # Cache timeout expects seconds (can be fractional like 0.5s for 500ms)
-        self.cache_db.set(cache_key, 1, timeout=rate_limit_ms / 1000.0)
+        self.cache_db.set(cache_key, 1, timeout=match_route["time_ms"] / 1000.0)
 
     response = self.get_response(request)
     return response
@@ -365,3 +339,8 @@ class RateLimitMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
     if user is not None and user.is_authenticated:
       return f"RequestID(user_id={user.id}, ip_address={ip_address})"
     return f"RequestID(ip_address={ip_address})"
+
+  def get_first_route_match(
+    self, request: HttpRequest, routes: list[RateLimitRouteSpecification] | None = None
+  ) -> RateLimitRouteSpecification | None:
+    return super().get_first_route_match(request, routes)
