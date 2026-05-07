@@ -3,6 +3,7 @@ from test.api.base import APIClient
 from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
 from apps.projects_and_clients.models import Client, Project, Task
+from apps.finances.models import MovGroup
 
 
 class BaseTaskTestCase(AuthenticatedTestCase):
@@ -166,6 +167,54 @@ class TasksRoute_Create(BaseTaskTestCase):
     # Create a new client pointing to an invalid project
     client = APIClient(path_prefix=f"/api/projects/{uuid.uuid4()}/tasks")
     res = client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
+    self.assertEqual(res.status_code, 404)
+
+  def test_create_task_with_movimentation_success(self):
+    token = self._get_valid_token()
+    # Ensure MovGroup exists for this project (in case it was deleted by another test)
+    MovGroup.objects.get_or_create(
+      related_to=self.project_obj.id,
+      user=self.user,
+      defaults={
+        "name": f"Finance Group for {self.project_obj.id}",
+        "relation": "PROJECT",
+      },
+    )
+
+    data = {
+      "name": "Task with Movimentation",
+      "movimentation": {
+        "amount": 150.75,
+        "balance": "+",
+      },
+    }
+
+    res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
+    res_data = res.json()
+
+    self.assertEqual(res.status_code, 201)
+    self.assertEqual(res_data["name"], "Task with Movimentation")
+
+    # Verify Task and Movimentation in DB
+    task = Task.objects.get(id=res_data["id"])
+    self.assertIsNotNone(task.movimentation)
+    self.assertEqual(float(task.movimentation.amount), 150.75)
+    self.assertEqual(task.movimentation.balance, "+")
+
+  def test_create_task_movgroup_not_found_returns_404(self):
+    token = self._get_valid_token()
+    # Delete the automatically created MovGroup for this project
+    MovGroup.objects.filter(related_to=self.project_obj.id).delete()
+
+    data = {
+      "name": "Task with Movimentation",
+      "movimentation": {
+        "amount": 150.75,
+        "balance": "+",
+      },
+    }
+
+    res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
     self.assertEqual(res.status_code, 404)
 
   def test_create_task_exclude_fields_that_arent_in_schema(self):

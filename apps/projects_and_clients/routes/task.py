@@ -7,7 +7,11 @@ from apps.projects_and_clients.schemas.task import (
   UpdateTaskReq,
   PartialUpdateTaskReq,
 )
-from apps.projects_and_clients.services.task import TaskService
+from apps.projects_and_clients.services.task import (
+  TaskService,
+  ProjectNotFoundError,
+  MovGroupNotFoundError,
+)
 from apps.core.utils.paginate import paginate_route
 from apps.core.schemas.response import BaseAPIResponse, PaginatedAPIResponse
 
@@ -21,9 +25,14 @@ def create_task(request, project_id: str, data: CreateTaskReq):
 
   try:
     created = TaskService.create(request.user, project_id, data)
-  except ResourceNotFoundError:
+  except ProjectNotFoundError:
     return 404, {
       "details": "Project associated with task wasn't found",
+      "success": False,
+    }
+  except MovGroupNotFoundError:
+    return 404, {
+      "details": "Movimentation group associated with movimentation, associated with Task wasn't found",
       "success": False,
     }
 
@@ -103,7 +112,7 @@ def delete_task(request, task_id: str, project_id: str):
     TaskService.delete(request.user, task_id, project_id)
   except ResourceNotFoundError:
     return 404, {
-      "details": "Task associated with project wasn't found",
+      "details": "Either Task associated with project or Movimentation associated with Task wasn't found",
       "success": False,
     }
 

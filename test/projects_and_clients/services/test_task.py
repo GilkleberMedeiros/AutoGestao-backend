@@ -4,7 +4,11 @@ from django.utils import timezone
 import uuid
 
 from apps.core.exceptions import ResourceNotFoundError
-from apps.projects_and_clients.services.task import TaskService
+from apps.projects_and_clients.services.task import (
+  TaskService,
+  ProjectNotFoundError,
+  MovGroupNotFoundError,
+)
 from apps.projects_and_clients.schemas.task import (
   CreateTaskReq,
   UpdateTaskReq,
@@ -42,7 +46,7 @@ class TestTaskService_Create(TestCase):
     MockProject.objects.filter.return_value.first.return_value = None
 
     data = CreateTaskReq(name="Task", done_at=None)
-    with self.assertRaises(ResourceNotFoundError):
+    with self.assertRaises(ProjectNotFoundError):
       TaskService.create(user, project_id, data)
 
   @patch("apps.projects_and_clients.services.task.Task")
@@ -86,17 +90,74 @@ class TestTaskService_Create(TestCase):
     self.assertIn("done_at", kwargs)
     self.assertEqual(kwargs["done_at"], done_at)
 
+  @patch("apps.projects_and_clients.services.task.Task")
+  @patch("apps.projects_and_clients.services.task.MovimentationService")
+  @patch("apps.projects_and_clients.services.task.MovGroup")
+  @patch("apps.projects_and_clients.services.task.Project")
   def test_create_task_with_movimentation(
-    self,
+    self, MockProject, MockMovGroup, MockMovService, MockTask
   ):
-    # TODO: create a task with movimentation and check if it was created
-    pass
+    user = MagicMock()
+    project_id = str(uuid.uuid4())
+    project_mock = MagicMock()
+    MockProject.objects.filter.return_value.first.return_value = project_mock
 
+    movgroup_mock = MagicMock()
+    MockMovGroup.objects.filter.return_value.first.return_value = movgroup_mock
+
+    movimentation_mock = MagicMock()
+    MockMovService.create.return_value = movimentation_mock
+
+    task_mock = MagicMock()
+    MockTask.objects.create.return_value = task_mock
+
+    mov_data = {"amount": 100.0, "balance": "+"}
+    data = CreateTaskReq(name="Task with Mov", done_at=None, movimentation=mov_data)
+
+    result = TaskService.create(user, project_id, data)
+
+    MockMovGroup.objects.filter.assert_called_once_with(
+      related_to=project_id, user=user
+    )
+    MockMovService.create.assert_called_once()
+    MockTask.objects.create.assert_called_once()
+    # Check if the movimentation object was passed to Task.create
+    _, kwargs = MockTask.objects.create.call_args
+    self.assertEqual(kwargs["movimentation"], movimentation_mock)
+    self.assertEqual(result, task_mock)
+
+  @patch("apps.projects_and_clients.services.task.Task")
+  @patch("apps.projects_and_clients.services.task.MovimentationService")
+  @patch("apps.projects_and_clients.services.task.MovGroup")
+  @patch("apps.projects_and_clients.services.task.Project")
   def test_create_task_doesnot_create_movimentation_if_no_movimentation_data_provided(
-    self,
+    self, MockProject, MockMovGroup, MockMovService, MockTask
   ):
-    # TODO: create a task without movimentation data when not provided, and check if it was not created
-    pass
+    user = MagicMock()
+    project_id = str(uuid.uuid4())
+    MockProject.objects.filter.return_value.first.return_value = MagicMock()
+    MockMovGroup.objects.filter.return_value.first.return_value = MagicMock()
+    MockTask.objects.create.return_value = MagicMock()
+
+    data = CreateTaskReq(name="Task No Mov", done_at=None, movimentation=None)
+    TaskService.create(user, project_id, data)
+
+    MockMovGroup.objects.filter.assert_not_called()
+    MockMovService.create.assert_not_called()
+
+  @patch("apps.projects_and_clients.services.task.MovGroup")
+  @patch("apps.projects_and_clients.services.task.Project")
+  def test_create_task_movgroup_not_found(self, MockProject, MockMovGroup):
+    user = MagicMock()
+    project_id = str(uuid.uuid4())
+    MockProject.objects.filter.return_value.first.return_value = MagicMock()
+    MockMovGroup.objects.filter.return_value.first.return_value = None
+
+    mov_data = {"amount": 100.0, "balance": "+"}
+    data = CreateTaskReq(name="Task", done_at=None, movimentation=mov_data)
+
+    with self.assertRaises(MovGroupNotFoundError):
+      TaskService.create(user, project_id, data)
 
   @patch("apps.projects_and_clients.services.task.Task")
   @patch("apps.projects_and_clients.services.task.Project")
@@ -261,12 +322,26 @@ class TestTaskService_Delete(TestCase):
   def test_delete_task_success(self, mock_get):
     user = MagicMock()
     task_mock = MagicMock()
+    task_mock.movimentation = None
     mock_get.return_value = task_mock
 
     result = TaskService.delete(user, "task-id", "project-id")
 
     task_mock.delete.assert_called_once()
     self.assertEqual(result, {"success": True})
+
+  @patch("apps.projects_and_clients.services.task.TaskService.get")
+  def test_delete_task_with_movimentation_success(self, mock_get):
+    user = MagicMock()
+    task_mock = MagicMock()
+    mov_mock = MagicMock()
+    task_mock.movimentation = mov_mock
+    mock_get.return_value = task_mock
+
+    TaskService.delete(user, "task-id", "project-id")
+
+    mov_mock.delete.assert_called_once()
+    task_mock.delete.assert_called_once()
 
   @patch("apps.projects_and_clients.services.task.TaskService.get")
   def test_delete_task_calls_get_with_correct_args(self, mock_get):

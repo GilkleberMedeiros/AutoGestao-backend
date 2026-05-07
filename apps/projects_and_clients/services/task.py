@@ -6,9 +6,20 @@ from apps.projects_and_clients.schemas.task import (
   PartialUpdateTaskReq,
 )
 from apps.projects_and_clients.models import Task, Project
+from apps.finances.services.movimentation import MovimentationService
+from apps.finances.schemas.movimentation import CreateMovimentationReq
+from apps.finances.models import MovGroup
 from apps.users.models import User
 
 from apps.core.exceptions import ResourceNotFoundError
+
+
+class ProjectNotFoundError(ResourceNotFoundError):
+  pass
+
+
+class MovGroupNotFoundError(ResourceNotFoundError):
+  pass
 
 
 class TaskService:
@@ -21,10 +32,24 @@ class TaskService:
     project = Project.objects.filter(id=project_id, user=user).first()
 
     if not project:
-      raise ResourceNotFoundError("Project not found.")
+      raise ProjectNotFoundError("Project not found.")
 
-    # TODO: add creation of movimentation model here
-    # if data comes with movimentation create data (later).
+    # if data comes with movimentation create data.
+    if data.get("movimentation", None):
+      movgroup = MovGroup.objects.filter(related_to=project_id, user=user).first()
+      if not movgroup:
+        raise MovGroupNotFoundError(
+          "Movimentation Group not found for create Movimentation associated Task."
+        )
+
+      reason = f"Valor referente a atividade: {data['name']}."
+      movdata = CreateMovimentationReq(**data["movimentation"], reason=reason)
+
+      movimentation = MovimentationService.create(
+        user=user, mov_group_id=movgroup.id, data=movdata
+      )
+      data["movimentation"] = movimentation
+
     task = Task.objects.create(project=project, **data)
     task.save()
 
@@ -70,5 +95,7 @@ class TaskService:
   @staticmethod
   def delete(user: User, task_id: str, project_id: str):
     task = TaskService.get(user, task_id, project_id)
+    if task.movimentation:
+      task.movimentation.delete()
     task.delete()
     return {"success": True}

@@ -1,6 +1,7 @@
 from ninja import ModelSchema
 
 from apps.projects_and_clients.models import Task
+from apps.finances.models import Movimentation
 
 
 class TaskSchema(ModelSchema):
@@ -15,11 +16,19 @@ class TaskSchema(ModelSchema):
     ]
 
 
+class MovimentationInTask(ModelSchema):
+  class Meta:
+    model = Movimentation
+    fields = ["amount", "balance"]
+
+
 class CreateTaskReq(ModelSchema):
   class Meta:
     model = Task
     fields = ["name", "done_at"]
     fields_optional = ["done_at"]
+
+  movimentation: MovimentationInTask | None = None
 
 
 class UpdateTaskReq(ModelSchema):

@@ -5,6 +5,7 @@ from django.utils import timezone
 from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
 from apps.projects_and_clients.models import Client, Project, Task
+from apps.finances.models import MovGroup, Movimentation
 
 
 class BaseTaskTestCase(AuthenticatedTestCase):
@@ -214,6 +215,33 @@ class TasksRoute_Delete(BaseTaskTestCase):
       f"/{self.task_obj.id}", headers={"Authorization": f"Bearer {token}"}
     )
     self.assertEqual(res.status_code, 403)
+
+  def test_delete_task_with_movimentation_success(self):
+    token = self._get_valid_token()
+    # Create a task with movimentation
+    mov_group, _ = MovGroup.objects.get_or_create(
+      related_to=self.project_obj.id,
+      user=self.user,
+      defaults={
+        "name": f"Finance Group for {self.project_obj.id}",
+        "relation": "PROJECT",
+      },
+    )
+    movimentation = Movimentation.objects.create(
+      mov_group=mov_group, amount=50.0, balance="-", reason="test delete"
+    )
+    task_with_mov = Task.objects.create(
+      project=self.project_obj, name="Task to Delete", movimentation=movimentation
+    )
+
+    res = self.client.delete(
+      f"/{task_with_mov.id}", headers={"Authorization": f"Bearer {token}"}
+    )
+
+    self.assertEqual(res.status_code, 200)
+    # Verify both Task and Movimentation are deleted
+    self.assertFalse(Task.objects.filter(id=task_with_mov.id).exists())
+    self.assertFalse(Movimentation.objects.filter(id=movimentation.id).exists())
 
   def test_delete_task_invalid_id_returns_404(self):
     token = self._get_valid_token()
