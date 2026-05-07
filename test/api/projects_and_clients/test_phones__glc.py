@@ -83,6 +83,18 @@ class PhonesRoute_List(BasePhoneTestCase):
     data = res.json()
     self.assertEqual(data.get("success"), False)
 
+  def test_list_phones_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.get(
+      f"{self.client_obj.id}/phones", headers={"Authorization": f"Bearer {token}"}
+    )
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
+
   def test_list_phones_invalid_client_returns_404(self):
     """Test if route returns 404 for a non-existent client."""
     token = self._get_valid_token()
@@ -126,6 +138,21 @@ class PhonesRoute_Create(BasePhoneTestCase):
     data = {"phone": "11933333333"}
     res = self.client.post(f"{self.client_obj.id}/phones", data=data)
     self.assertEqual(res.status_code, 401)
+
+  def test_create_phone_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    data = {"phone": "11933333333"}
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.post(
+      f"{self.client_obj.id}/phones",
+      data=data,
+      headers={"Authorization": f"Bearer {token}"},
+    )
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
 
   def test_create_phone_invalid_client_returns_404(self):
     """Test if route returns 404 for a non-existent client."""

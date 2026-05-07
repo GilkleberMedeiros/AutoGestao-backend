@@ -48,7 +48,7 @@ class APIClient(Client):
     """
     super().__init__(**kwargs)
     self.content_type = content_type
-    self.path_prefix = path_prefix.rstrip("/")  # Remove trailing slash for consistency
+    self.path_prefix = (path_prefix or "").rstrip("/")  # Remove trailing slash for consistency
 
   def _prepare_path(self, path: str = ""):
     """
@@ -63,7 +63,10 @@ class APIClient(Client):
     if self.path_prefix and not path.startswith(self.path_prefix):
       # Remove leading slash from path to avoid double slashes
       path = path.lstrip("/")
-      path = f"{self.path_prefix}/{path}" if path else self.path_prefix
+      if path.startswith("?"):
+        path = f"{self.path_prefix}{path}"
+      else:
+        path = f"{self.path_prefix}/{path}" if path else self.path_prefix
     return path
 
   def _prepare_kwargs(self, kwargs):

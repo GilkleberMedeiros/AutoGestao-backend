@@ -76,6 +76,21 @@ class EmailsRoute_Update(BaseEmailTestCase):
     res = self.client.put(f"emails/{self.email_obj.id}", data=data)
     self.assertEqual(res.status_code, 401)
 
+  def test_update_email_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    data = {"email": "updated-api-test@example.com"}
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.put(
+      f"emails/{self.email_obj.id}",
+      data=data,
+      headers={"Authorization": f"Bearer {token}"},
+    )
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
+
   def test_update_email_invalid_id_returns_404(self):
     """Test if route returns 404 for a non-existent email."""
     token = self._get_valid_token()
@@ -108,6 +123,19 @@ class EmailsRoute_Delete(BaseEmailTestCase):
     """Test authentication gating."""
     res = self.client.delete(f"emails/{self.email_obj.id}")
     self.assertEqual(res.status_code, 401)
+
+  def test_delete_email_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.delete(
+      f"emails/{self.email_obj.id}",
+      headers={"Authorization": f"Bearer {token}"},
+    )
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
 
   def test_delete_email_invalid_id_returns_404(self):
     """Test if route returns 404 for a non-existent email."""

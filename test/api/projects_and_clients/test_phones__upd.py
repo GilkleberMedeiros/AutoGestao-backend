@@ -76,6 +76,21 @@ class PhonesRoute_Update(BasePhoneTestCase):
     res = self.client.put(f"phones/{self.phone_obj.id}", data=data)
     self.assertEqual(res.status_code, 401)
 
+  def test_update_phone_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    data = {"phone": "11988888888"}
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.put(
+      f"phones/{self.phone_obj.id}",
+      data=data,
+      headers={"Authorization": f"Bearer {token}"},
+    )
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
+
   def test_update_phone_invalid_id_returns_404(self):
     """Test if route returns 404 for a non-existent phone."""
     token = self._get_valid_token()
@@ -120,6 +135,18 @@ class PhonesRoute_Delete(BasePhoneTestCase):
     """Test authentication gating."""
     res = self.client.delete(f"phones/{self.phone_obj.id}")
     self.assertEqual(res.status_code, 401)
+
+  def test_delete_phone_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.delete(
+      f"phones/{self.phone_obj.id}", headers={"Authorization": f"Bearer {token}"}
+    )
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
 
   def test_delete_phone_invalid_id_returns_404(self):
     """Test if route returns 404 for a non-existent phone."""

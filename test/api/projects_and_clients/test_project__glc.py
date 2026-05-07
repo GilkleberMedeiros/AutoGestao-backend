@@ -3,6 +3,7 @@ from test.api.base import APIClient
 from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
 from apps.projects_and_clients.models import Client, Project
+from apps.finances.models import MovGroup
 
 
 class BaseProjectTestCase(AuthenticatedTestCase):
@@ -78,6 +79,16 @@ class ProjectsRoute_List(BaseProjectTestCase):
     res = self.client.get("")
     self.assertEqual(res.status_code, 401)
 
+  def test_list_projects_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.get("", headers={"Authorization": f"Bearer {token}"})
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
+
 
 class ProjectsRoute_Get(BaseProjectTestCase):
   def test_get_project_success_outcome_validation(self):
@@ -94,6 +105,18 @@ class ProjectsRoute_Get(BaseProjectTestCase):
   def test_get_project_unauthenticated_returns_401(self):
     res = self.client.get(f"{self.project_obj.id}")
     self.assertEqual(res.status_code, 401)
+
+  def test_get_project_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.get(
+      f"{self.project_obj.id}", headers={"Authorization": f"Bearer {token}"}
+    )
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
 
   def test_get_project_invalid_id_returns_404(self):
     token = self._get_valid_token()
@@ -132,6 +155,22 @@ class ProjectsRoute_Create(BaseProjectTestCase):
     res = self.client.post("", data=data)
     self.assertEqual(res.status_code, 401)
 
+  def test_create_project_invalid_user_email_returns_403(self):
+    """Test if route returns 403 for a user with invalid email."""
+    token = self._get_valid_token()
+    data = {
+      "name": "New Project",
+      "client_id": str(self.client_obj.id),
+      "estimated_deadline": "2026-12-31",
+      "estimated_cost": 200.00,
+    }
+    self.user.is_email_valid = False
+    self.user.save()
+    res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
+    data = res.json()
+    self.assertEqual(res.status_code, 403)
+    self.assertEqual(data.get("success"), False)
+
   def test_create_project_client_not_found_returns_404(self):
     token = self._get_valid_token()
     data = {
@@ -142,3 +181,29 @@ class ProjectsRoute_Create(BaseProjectTestCase):
     }
     res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
     self.assertEqual(res.status_code, 404)
+
+  def test_create_project_automatically_creates_movimentation_group(self):
+    token = self._get_valid_token()
+    data = {
+      "name": "New Project",
+      "description": "test",
+      "estimated_deadline": "2026-12-31",
+      "estimated_cost": 200.00,
+      "colortag": "#000000",
+      "client_id": str(self.client_obj.id),
+    }
+
+    res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
+    res_data = res.json()
+
+    self.assertEqual(res.status_code, 201)
+
+    self.assertEqual(res_data["name"], "New Project")
+    self.assertIn("id", res_data)
+    proj_id = res_data["id"]
+
+    # Verify if the movimentation group was created and it's related to the project
+    mov_group_list = MovGroup.objects.filter(related_to=proj_id, relation="PROJECT")
+    self.assertEqual(mov_group_list.count(), 1)
+    mov_group_obj = mov_group_list.first()
+    self.assertEqual(mov_group_obj.user.id, self.user.id)

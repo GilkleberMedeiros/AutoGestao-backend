@@ -34,3 +34,9 @@ api.add_router("clients", router="apps.projects_and_clients.routes.client.router
 api.add_router("clients", router="apps.projects_and_clients.routes.emails.router")
 api.add_router("clients", router="apps.projects_and_clients.routes.phones.router")
 api.add_router("projects", router="apps.projects_and_clients.routes.project.router")
+api.add_router("projects", router="apps.projects_and_clients.routes.task.router")
+api.add_router("finances/groups", router="apps.finances.routes.movgroup.router")
+api.add_router(
+  "finances/groups/<str:movgroup_id>/movementations",
+  router="apps.finances.routes.movimentation.router",
+)

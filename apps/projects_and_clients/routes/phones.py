@@ -40,8 +40,8 @@ def create_phone(request, client_id: str, data: AddClientPhoneReq):
     404: BaseAPIResponse,
   },
 )
-@paginate_route(per_page=250)
-def list_phones(request, client_id: str, page: int = 1):
+@paginate_route
+def list_phones(request, client_id: str):
   """
   List all phones for a specific client.
   """

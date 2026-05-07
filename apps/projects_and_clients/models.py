@@ -3,6 +3,7 @@ from django.db import models
 import uuid
 
 from apps.users.models import User
+from apps.finances.models import Movimentation
 from apps.users.field_validators.phone import PhoneValidator
 
 
@@ -11,7 +12,12 @@ class Client(models.Model):
   user = models.ForeignKey(User, on_delete=models.CASCADE)
   name = models.CharField(max_length=255)
   # TODO: Add CPF validator to valid CPF format
-  cpf = models.CharField(max_length=14, unique=True, null=True, blank=True)
+  cpf = models.CharField(max_length=14, null=True, blank=True)
+
+  class Meta:
+    constraints = [
+      models.UniqueConstraint(fields=["user", "cpf"], name="user_client_cpf_unique")
+    ]
 
   def __str__(self):
     return self.name
@@ -116,7 +122,14 @@ class Project(models.Model):
 class Task(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
   project = models.ForeignKey(Project, on_delete=models.CASCADE)
-  # TODO: Later, add Finance model relation field when Finance module is created
+  movimentation = models.OneToOneField(
+    Movimentation,
+    on_delete=models.CASCADE,
+    related_name="task",
+    related_query_name="task",
+    null=True,
+    blank=True,
+  )
   name = models.CharField(max_length=128)
 
   done_at = models.DateTimeField(null=True, blank=True)

@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.14
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Create JWT Test Keys
+        run: |
+          openssl ecparam -genkey -name prime256v1 -out TEST_JWT_EC256_PRIVKEY.pem
+          openssl ec -in TEST_JWT_EC256_PRIVKEY.pem -pubout -out TEST_JWT_EC256_PUBKEY.pem
+
+      - name: Run Django Tests
+        env:
+          DJANGO_SECRET_KEY: "ci-secret-key-at-least-50-characters-long-for-security-purposes"
+          JWT_PRIVKEY_PATH: "TEST_JWT_EC256_PRIVKEY.pem"
+          JWT_PUBKEY_PATH: "TEST_JWT_EC256_PUBKEY.pem"
+          EMAIL_HOST_USER: "ci@example.com"
+          EMAIL_HOST_PASSWORD: "ci-password"
+          USE_DEBUG_DB: "True"
+          USE_DEBUG_CACHE: "True"
+          TESTING: "True"
+        run: uv run manage.py test

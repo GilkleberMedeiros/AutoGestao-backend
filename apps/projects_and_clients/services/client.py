@@ -7,7 +7,7 @@ from apps.projects_and_clients.models import (
   ClientRating,
 )
 from apps.users.models import User
-from apps.core.exceptions import ResourceNotFoundError
+from apps.core.exceptions import ResourceNotFoundError, ResourceAlreadyExistsError
 
 
 class ClientService:
@@ -18,21 +18,38 @@ class ClientService:
   """
 
   @staticmethod
+  def validate_unique_constraints(user: User, data: dict, exclude_id: str = None):
+    """
+    Validates unique constraints for Client model (CPF per user).
+    """
+    cpf = data.get("cpf")
+    if cpf:
+      queryset = Client.objects.filter(user=user, cpf=cpf)
+      if exclude_id:
+        queryset = queryset.exclude(id=exclude_id)
+      if queryset.exists():
+        raise ResourceAlreadyExistsError(
+          f"Client with CPF {cpf} already exists for this user."
+        )
+
+  @staticmethod
   @transaction.atomic
   def create(data: dict, user: User = None) -> Client:
     """
     Create a new client. Uses transaction. Expects data to be a dictionary.
     Expects User reference to be passed as param or be within data.
     """
+    # Ensure user is set (from argument or within data)
+    user_obj = data.pop("user", None) or user
+
+    # Ensure CPF uniqueness for this user
+    ClientService.validate_unique_constraints(user_obj, data)
 
     # Extract related data
     emails = data.pop("emails", []) or []
     phones = data.pop("phones", []) or []
     address_data = data.pop("address", None)
     rating_data = data.pop("rating", None)
-
-    # Ensure user is set (from argument or within data)
-    user_obj = data.pop("user", None) or user
 
     # Create main client
     client = Client.objects.create(user=user_obj, **data)
@@ -91,13 +108,15 @@ class ClientService:
     if not client:
       raise ResourceNotFoundError("Client not found")
 
+    # Update main client fields
+    ClientService.validate_unique_constraints(client.user, data, exclude_id=client.id)
+
     # Extract nested collections
     emails = data.pop("emails", []) or []
     phones = data.pop("phones", []) or []
     address_data = data.pop("address", None)
     rating_data = data.pop("rating", None)
 
-    # Update main client fields
     for field, value in data.items():
       setattr(client, field, value)
     client.save()
@@ -141,6 +160,8 @@ class ClientService:
     if not client:
       raise ResourceNotFoundError("Client not found")
 
+    ClientService.validate_unique_constraints(client.user, data, exclude_id=client.id)
+
     if "emails" in data:
       emails = data.pop("emails")
       ClientEmail.objects.filter(client=client).delete()
@@ -173,6 +194,7 @@ class ClientService:
 
     # Update main fields
     updated = False
+
     for field, value in data.items():
       setattr(client, field, value)
       updated = True

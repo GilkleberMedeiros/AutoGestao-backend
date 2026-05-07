@@ -11,7 +11,7 @@ class UserUpdateRoutesTestCase(AuthenticatedTestCase):
     "name": "testuser",
     "email": "testuser@example.com",
     "password": "testpassword",
-    "phone": "5584000000000",
+    "phone": "5584900000000",
   }
   user_create_model = User
   login_data = {"email": "testuser@example.com", "password": "testpassword"}
@@ -123,6 +123,59 @@ class UserUpdateRoutesTestCase(AuthenticatedTestCase):
     # Django Ninja throws 422 for pydantic schema validation errors
     self.assertEqual(res.status_code, 422)
 
+  def test_put_cant_update_user_provided_email_already_in_use(self):
+    token = self._get_valid_token()
+    User.objects.create_user(
+      name="testuser", email="email5@example.com", phone="5584900110011"
+    )
+
+    data = {
+      "name": "updated name",
+      "email": "email5@example.com",  # Email already in use ^
+      "phone": "5584999999999",
+    }
+    res = self._make_put_request(data, {"Authorization": f"Bearer {token}"})
+
+    response_body = res.json()
+    self.assertFalse(response_body["success"])
+
+    self.assertEqual(res.status_code, 400)
+
+  def test_put_cant_update_user_provided_phone_already_in_use(self):
+    token = self._get_valid_token()
+    User.objects.create_user(
+      name="testuser", email="test4@example.com", phone="5584900110011"
+    )
+
+    data = {
+      "name": "updated name",
+      "email": "test2@example.com",
+      "phone": "5584900110011",  # Phone already in use ^
+    }
+    res = self._make_put_request(data, {"Authorization": f"Bearer {token}"})
+
+    response_body = res.json()
+    self.assertFalse(response_body["success"])
+
+    self.assertEqual(res.status_code, 400)
+
+  def test_put_can_update_user_phone_when_phone_is_equal(self):
+    token = self._get_valid_token()
+
+    data = {
+      "name": "updated name",
+      "email": "test2@example.com",
+      "phone": self.user.phone,  # Phone is equal to self.user.phone
+    }
+    res = self._make_put_request(data, {"Authorization": f"Bearer {token}"})
+
+    self.assertEqual(res.status_code, 200)
+
+    self.user.refresh_from_db()
+    self.assertEqual(self.user.phone, data["phone"])
+    self.assertEqual(self.user.name, data["name"])
+    self.assertEqual(self.user.email, data["email"])
+
   # --- PATCH TESTS ---
 
   def test_patch_success_partial_update(self):
@@ -185,3 +238,55 @@ class UserUpdateRoutesTestCase(AuthenticatedTestCase):
     self.assertEqual(res.status_code, 200)
     self.user.refresh_from_db()
     self.assertEqual(self.user.is_email_valid, True)
+
+  def test_patch_cant_update_user_provided_email_already_in_use(self):
+    token = self._get_valid_token()
+    User.objects.create_user(
+      name="testuser", email="email5@example.com", phone="5584900110011"
+    )
+    data = {
+      "name": "updated name",
+      "email": "email5@example.com",  # Email already in use ^
+      "phone": "5584999999999",
+    }
+
+    res = self._make_patch_request(data, {"Authorization": f"Bearer {token}"})
+    response_body = res.json()
+
+    self.assertFalse(response_body["success"])
+    self.assertEqual(res.status_code, 400)
+
+  def test_patch_cant_update_user_provided_phone_already_in_use(self):
+    token = self._get_valid_token()
+    User.objects.create_user(
+      name="testuser", email="test4@example.com", phone="5584900110011"
+    )
+
+    data = {
+      "name": "updated name",
+      "email": "test2@example.com",
+      "phone": "5584900110011",  # Phone already in use ^
+    }
+
+    res = self._make_patch_request(data, {"Authorization": f"Bearer {token}"})
+    response_body = res.json()
+
+    self.assertFalse(response_body["success"])
+    self.assertEqual(res.status_code, 400)
+
+  def test_patch_can_update_user_phone_when_phone_is_equal(self):
+    token = self._get_valid_token()
+
+    data = {
+      "name": "updated name",
+      "email": "test2@example.com",
+      "phone": self.user.phone,  # Phone is equal to self.user.phone
+    }
+    res = self._make_patch_request(data, {"Authorization": f"Bearer {token}"})
+
+    self.assertEqual(res.status_code, 200)
+
+    self.user.refresh_from_db()
+    self.assertEqual(self.user.phone, data["phone"])
+    self.assertEqual(self.user.name, data["name"])
+    self.assertEqual(self.user.email, data["email"])
