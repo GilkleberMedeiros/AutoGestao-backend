@@ -83,7 +83,7 @@ class ProjectService:
     project = ProjectService.get(user, project_id)
     ProjectService.validate_open_status_for_edit(project)
 
-    for attr, value in data.dict().items():
+    for attr, value in data.model_dump(exclude_unset=True).items():
       setattr(project, attr, value)
 
     project.save()
@@ -94,7 +94,7 @@ class ProjectService:
     project = ProjectService.get(user, project_id)
     ProjectService.validate_open_status_for_edit(project)
 
-    for attr, value in data.dict(exclude_unset=True).items():
+    for attr, value in data.model_dump(exclude_unset=True).items():
       setattr(project, attr, value)
 
     project.save()

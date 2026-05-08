@@ -73,7 +73,8 @@ def get_task(request, task_id: str, project_id: str):
 
 
 @router.put(
-  "/{project_id}/tasks/{task_id}", response={200: TaskSchema, 404: BaseAPIResponse}
+  "/{project_id}/tasks/{task_id}",
+  response={200: TaskSchema, 404: BaseAPIResponse},
 )
 def update_task(request, task_id: str, project_id: str, data: UpdateTaskReq):
   try:
@@ -88,7 +89,8 @@ def update_task(request, task_id: str, project_id: str, data: UpdateTaskReq):
 
 
 @router.patch(
-  "/{project_id}/tasks/{task_id}", response={200: TaskSchema, 404: BaseAPIResponse}
+  "/{project_id}/tasks/{task_id}",
+  response={200: TaskSchema, 404: BaseAPIResponse},
 )
 def partial_update_task(
   request, task_id: str, project_id: str, data: PartialUpdateTaskReq

@@ -44,7 +44,7 @@ class MovimentationService:
   ) -> Movimentation:
     movimentation = MovimentationService.get(user, movimentation_id)
 
-    for attr, value in data.model_dump(exclude={"mov_group_id"}).items():
+    for attr, value in data.model_dump(exclude={"mov_group_id"}, exclude_unset=True).items():
       setattr(movimentation, attr, value)
 
     movimentation.save()

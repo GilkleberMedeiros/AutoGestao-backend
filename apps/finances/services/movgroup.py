@@ -62,7 +62,7 @@ class MovGroupService:
     if data.name != mov_group.name:
       MovGroupService.validate_unique_constraints(user, data, exclude_id=mov_group.id)
 
-    for attr, value in data.model_dump().items():
+    for attr, value in data.model_dump(exclude_unset=True).items():
       setattr(mov_group, attr, value)
 
     mov_group.save()
