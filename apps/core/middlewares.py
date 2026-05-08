@@ -142,6 +142,7 @@ class JWTAuthenticationMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
   _routes = [
     r"^/?api/test-routes/middlewares/jwt-auth-middleware/?$",  # Test route to test this middleware.
     r"^/?api/test-routes/middlewares/valid-email-permission-middleware/?$",
+    r"^/?api/test-routes/utils/.*$",
     r"^/?api/users/?$",
     r"^/?api/users/auth/me?$",
     r"^/?api/users/validate/.*$",

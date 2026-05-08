@@ -25,6 +25,9 @@ if settings.TESTING:
   api.add_router(
     "test-routes/middlewares/", router="apps.core.test_routes.middlewares.router"
   )
+  api.add_router(
+    "test-routes/utils/", router="apps.core.test_routes.route_utils.router"
+  )
 
 api.add_router("users", router="apps.users.routes.router")
 api.add_router("users/auth/", router="apps.authentication.routes.auth.router")
