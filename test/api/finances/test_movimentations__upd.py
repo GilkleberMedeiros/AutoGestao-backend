@@ -20,7 +20,7 @@ class BaseMovimentationTestCase(AuthenticatedTestCase):
   }
   user_create_model = User
   login_data = {"email": "testapi_mov_upd@example.com", "password": "testpassword"}
-  URL_TEMPLATE = "/api/finances/groups/{movgroup_id}/movementations/"
+  URL_TEMPLATE = "/api/finances/groups/{movgroup_id}/movimentations/"
 
   @classmethod
   def setUpClass(cls):
@@ -72,7 +72,9 @@ class MovimentationRoute_Update(BaseMovimentationTestCase):
     }
 
     res = self.client.put(
-      f"{self.movimentation_obj.id}", data=data, headers={"Authorization": f"Bearer {token}"}
+      f"{self.movimentation_obj.id}",
+      data=data,
+      headers={"Authorization": f"Bearer {token}"},
     )
     self.assertEqual(res.status_code, 200, res.content.decode()[:500])
     res_data = res.json()
@@ -82,14 +84,24 @@ class MovimentationRoute_Update(BaseMovimentationTestCase):
     self.assertEqual(float(res_data["amount"]), 200.0)
 
   def test_update_movimentation_unauthenticated_returns_401(self):
-    data = {"amount": 1.0, "balance": "+", "reason": "test", "movemented_at": timezone.now().isoformat()}
+    data = {
+      "amount": 1.0,
+      "balance": "+",
+      "reason": "test",
+      "movemented_at": timezone.now().isoformat(),
+    }
     res = self.client.put(f"{self.movimentation_obj.id}", data=data)
     self.assertEqual(res.status_code, 401)
 
   def test_update_movimentation_invalid_id_returns_404(self):
     token = self._get_valid_token()
     random_id = str(uuid.uuid4())
-    data = {"amount": 1.0, "balance": "+", "reason": "test", "movemented_at": timezone.now().isoformat()}
+    data = {
+      "amount": 1.0,
+      "balance": "+",
+      "reason": "test",
+      "movemented_at": timezone.now().isoformat(),
+    }
 
     res = self.client.put(
       f"{random_id}", data=data, headers={"Authorization": f"Bearer {token}"}
@@ -100,10 +112,17 @@ class MovimentationRoute_Update(BaseMovimentationTestCase):
     token = self._get_valid_token()
     self.user.is_email_valid = False
     self.user.save()
-    data = {"amount": 1.0, "balance": "+", "reason": "test", "movemented_at": timezone.now().isoformat()}
+    data = {
+      "amount": 1.0,
+      "balance": "+",
+      "reason": "test",
+      "movemented_at": timezone.now().isoformat(),
+    }
 
     res = self.client.put(
-      f"{self.movimentation_obj.id}", data=data, headers={"Authorization": f"Bearer {token}"}
+      f"{self.movimentation_obj.id}",
+      data=data,
+      headers={"Authorization": f"Bearer {token}"},
     )
     self.assertEqual(res.status_code, 403)
     self.user.is_email_valid = True
@@ -116,14 +135,16 @@ class MovimentationRoute_PartialUpdate(BaseMovimentationTestCase):
     data = {"reason": "Partially Updated"}
 
     res = self.client.patch(
-      f"{self.movimentation_obj.id}", data=data, headers={"Authorization": f"Bearer {token}"}
+      f"{self.movimentation_obj.id}",
+      data=data,
+      headers={"Authorization": f"Bearer {token}"},
     )
     self.assertEqual(res.status_code, 200, res.content.decode()[:500])
     res_data = res.json()
 
     self.assertEqual(res.status_code, 200)
     self.assertEqual(res_data["reason"], "Partially Updated")
-    self.assertEqual(float(res_data["amount"]), 100.50) # Unchanged
+    self.assertEqual(float(res_data["amount"]), 100.50)  # Unchanged
 
   def test_partial_update_movimentation_unauthenticated_returns_401(self):
     res = self.client.patch(f"{self.movimentation_obj.id}", data={"reason": "test"})
@@ -134,7 +155,9 @@ class MovimentationRoute_PartialUpdate(BaseMovimentationTestCase):
     random_id = str(uuid.uuid4())
 
     res = self.client.patch(
-      f"{random_id}", data={"reason": "test"}, headers={"Authorization": f"Bearer {token}"}
+      f"{random_id}",
+      data={"reason": "test"},
+      headers={"Authorization": f"Bearer {token}"},
     )
     self.assertEqual(res.status_code, 404)
 
@@ -144,7 +167,9 @@ class MovimentationRoute_PartialUpdate(BaseMovimentationTestCase):
     self.user.save()
 
     res = self.client.patch(
-      f"{self.movimentation_obj.id}", data={"reason": "test"}, headers={"Authorization": f"Bearer {token}"}
+      f"{self.movimentation_obj.id}",
+      data={"reason": "test"},
+      headers={"Authorization": f"Bearer {token}"},
     )
     self.assertEqual(res.status_code, 403)
     self.user.is_email_valid = True
@@ -162,7 +187,9 @@ class MovimentationRoute_Delete(BaseMovimentationTestCase):
     self.assertTrue(res.json()["success"])
 
     # Verify it's really gone
-    self.assertFalse(Movimentation.objects.filter(id=self.movimentation_obj.id).exists())
+    self.assertFalse(
+      Movimentation.objects.filter(id=self.movimentation_obj.id).exists()
+    )
 
   def test_delete_movimentation_unauthenticated_returns_401(self):
     res = self.client.delete(f"{self.movimentation_obj.id}")
@@ -172,7 +199,9 @@ class MovimentationRoute_Delete(BaseMovimentationTestCase):
     token = self._get_valid_token()
     random_id = str(uuid.uuid4())
 
-    res = self.client.delete(f"{random_id}", headers={"Authorization": f"Bearer {token}"})
+    res = self.client.delete(
+      f"{random_id}", headers={"Authorization": f"Bearer {token}"}
+    )
     self.assertEqual(res.status_code, 404)
 
   def test_delete_movimentation_invalid_user_email_returns_403(self):

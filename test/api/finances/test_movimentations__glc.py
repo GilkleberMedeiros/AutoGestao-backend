@@ -20,7 +20,7 @@ class BaseMovimentationTestCase(AuthenticatedTestCase):
   }
   user_create_model = User
   login_data = {"email": "testapi_mov@example.com", "password": "testpassword"}
-  URL_TEMPLATE = "/api/finances/groups/{movgroup_id}/movementations/"
+  URL_TEMPLATE = "/api/finances/groups/{movgroup_id}/movimentations/"
 
   @classmethod
   def setUpClass(cls):
@@ -151,9 +151,7 @@ class MovimentationRoute_Create(BaseMovimentationTestCase):
       "movemented_at": timezone.now().isoformat(),
     }
 
-    res = self.client.post(
-      "", data=data, headers={"Authorization": f"Bearer {token}"}
-    )
+    res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
     self.assertEqual(res.status_code, 201, res.content.decode()[:500])
     res_data = res.json()
 
@@ -199,9 +197,7 @@ class MovimentationRoute_Create(BaseMovimentationTestCase):
       "movemented_at": timezone.now().isoformat(),
     }
 
-    res = self.client.post(
-      "", data=data, headers={"Authorization": f"Bearer {token}"}
-    )
+    res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
     self.assertEqual(res.status_code, 403)
     self.user.is_email_valid = True
     self.user.save()

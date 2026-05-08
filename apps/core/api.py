@@ -40,6 +40,6 @@ api.add_router("projects", router="apps.projects_and_clients.routes.project.rout
 api.add_router("projects", router="apps.projects_and_clients.routes.task.router")
 api.add_router("finances/groups", router="apps.finances.routes.movgroup.router")
 api.add_router(
-  "finances/groups/<str:movgroup_id>/movementations",
+  "finances/groups/<str:movgroup_id>/movimentations",
   router="apps.finances.routes.movimentation.router",
 )
