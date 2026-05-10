@@ -33,6 +33,8 @@ class UserMeTestCase(AuthenticatedTestCase):
     super().setUpClass()
     super().setUpClassUser()
     super().setUpClassAuth()
+    cls._photo = cls._make_png_file()
+    cls.upload_user_profile_photo(cls._photo)
 
   def setUp(self):
     super().setUp()
@@ -106,6 +108,7 @@ class UserMeTestCase(AuthenticatedTestCase):
     self.assertIsInstance(response_data, dict)
     self.assertIsNotNone(response_data.get("id", None))
     self.assertIsNotNone(response_data.get("name", None))
+    self.assertIsNotNone(response_data.get("profile_photo", None))
     self.assertIsNotNone(response_data.get("email", None))
     self.assertIsNotNone(response_data.get("phone", None))
     self.assertIn("is_email_valid", response_data)
@@ -121,6 +124,9 @@ class UserMeTestCase(AuthenticatedTestCase):
     self.assertIsInstance(response_data, dict)
     self.assertEqual(str(self.user.id), response_data.get("id", None))
     self.assertEqual(self.user.name, response_data.get("name", None))
+    self.assertEqual(
+      self.user.profile_photo.url, response_data.get("profile_photo", None)
+    )
     self.assertEqual(self.user.email, response_data.get("email", None))
     self.assertEqual(self.user.phone, response_data.get("phone", None))
     self.assertEqual(

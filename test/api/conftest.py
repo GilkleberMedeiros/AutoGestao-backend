@@ -9,6 +9,11 @@ from test.api.base import (
 )
 from django.test import TestCase, override_settings
 
+from io import BytesIO
+
+from django.test.client import MULTIPART_CONTENT
+from PIL import Image
+
 
 class APITestCase(TestCase):
   """
@@ -88,3 +93,60 @@ class AuthenticatedTestCase(
     cls.login_response = None
     cls.user = None
     super().tearDownClass()
+
+  @classmethod
+  def upload_user_profile_photo(cls, photo: BytesIO):
+    """
+    Uploads user profile photo and saves it in the class. Must be called after setUpClass method.
+
+    Args:
+      photo: BytesIO instance
+    """
+
+    user = cls.user
+    if not user:
+      raise RuntimeError("User is not set. Please set user before calling this method.")
+
+    if not cls.client:
+      raise RuntimeError(
+        "Client is not set. Please set client before calling this method."
+      )
+
+    if not cls.credentials:
+      raise RuntimeError(
+        "Credentials are not set. Please set credentials before calling this method."
+      )
+
+    response = cls.client.post(
+      "/api/users/profile-photo",
+      data={"file": photo},
+      content_type=MULTIPART_CONTENT,
+      headers={"Authorization": f"Bearer {cls.credentials['access']}"},
+    )
+
+    if response.status_code != 200:
+      raise RuntimeError("Failed to upload user profile photo")
+
+    cls.user.refresh_from_db()
+
+  @staticmethod
+  def _make_png_file(name: str = "test.png") -> BytesIO:
+    """
+    Makes a png file for user profile photo.
+    """
+    img_io = BytesIO()
+    Image.new("RGBA", (60, 30), color="green").save(img_io, "PNG")
+    img_io.seek(0)
+    img_io.name = name
+    return img_io
+
+  @staticmethod
+  def _make_jpeg_file(name: str = "test.jpeg") -> BytesIO:
+    """
+    Makes a jpeg file for user profile photo.
+    """
+    img_io = BytesIO()
+    Image.new("RGB", (60, 30), color="red").save(img_io, "JPEG")
+    img_io.seek(0)
+    img_io.name = name
+    return img_io

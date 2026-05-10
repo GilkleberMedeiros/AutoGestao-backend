@@ -144,6 +144,7 @@ class JWTAuthenticationMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
     r"^/?api/test-routes/middlewares/valid-email-permission-middleware/?$",
     r"^/?api/test-routes/utils/.*$",
     r"^/?api/users/?$",
+    r"^/?api/users/profile-photo/?$",
     r"^/?api/users/auth/me?$",
     r"^/?api/users/validate/.*$",
     r"^/?api/clients/?$",

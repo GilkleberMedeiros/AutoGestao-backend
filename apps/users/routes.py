@@ -1,4 +1,5 @@
-from ninja import Router
+from ninja import Router, File
+from ninja.files import UploadedFile
 from django.http import HttpRequest
 
 from apps.core.schemas.response import BaseAPIResponse
@@ -39,3 +40,21 @@ def partial_update_user(request: HttpRequest, body: PartialUpdateUserReq):
     return 200, updated_user
   except (UserEmailAlreadyExistsError, UserPhoneAlreadyExistsError) as e:
     return 400, {"details": str(e), "success": False}
+
+
+@router.post("/profile-photo", response={200: UserMeRes, 400: BaseAPIResponse})
+def upload_profile_photo(request: HttpRequest, file: File[UploadedFile]):
+  user = request.user
+  if not user.is_authenticated:
+    return 400, {"details": "User not authenticated", "success": False}
+
+  if file.content_type not in ["image/jpeg", "image/png"]:
+    return 400, {
+      "details": "Invalid file type. Should be image, jpeg or png",
+      "success": False,
+    }
+
+  user.profile_photo = file
+  user.save()
+
+  return 200, user

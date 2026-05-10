@@ -81,9 +81,16 @@ class UserManager(DjangoUserManager):
     return await self._acreate_user(name, email, password, **extra_fields)
 
 
+def _make_profile_photo_upload_path(self, filename):
+  return f"users/user_{self.id}/profile_photo/{filename}"
+
+
 class User(AbstractUser):
   id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
   name = models.CharField(max_length=128)
+  profile_photo = models.ImageField(
+    upload_to=_make_profile_photo_upload_path, blank=True, null=True
+  )
   username = None  # Remove the username field from AbstractUser
   email = models.EmailField(unique=True, max_length=256)
   phone = models.CharField(
