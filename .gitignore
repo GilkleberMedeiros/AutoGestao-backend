@@ -12,6 +12,9 @@ wheels/
 # Test/Local Databases
 *.sqlite3
 
+# Media files
+media/
+
 # Keys and credentials
 *.env
 *.pem

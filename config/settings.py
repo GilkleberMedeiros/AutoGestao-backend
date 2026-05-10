@@ -18,12 +18,17 @@ from config.env import (
   DEBUG as _DEBUG,
   DEFAULT_DB,
   DEFAULT_CACHE,
+  DEFAULT_STORAGE_BACKEND,
   TESTING as _TESTING,
   JWT_PRIVKEY_PATH as _JWT_PRIVKEY_PATH,
   JWT_PUBKEY_PATH as _JWT_PUBKEY_PATH,
   JWT_ALGO,
   JWT_ACCESS_LIFETIME,
   JWT_REFRESH_LIFETIME,
+  AWS_ACCESS_KEY_ID as _AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY as _AWS_SECRET_ACCESS_KEY,
+  AWS_STORAGE_BUCKET_NAME as _AWS_STORAGE_BUCKET_NAME,
+  AWS_S3_REGION_NAME as _AWS_S3_REGION_NAME,
   EMAIL_HOST as _EMAIL_HOST,
   EMAIL_PORT as _EMAIL_PORT,
   EMAIL_USE_TLS as _EMAIL_USE_TLS,
@@ -78,6 +83,7 @@ INSTALLED_APPS = [
   "django.contrib.sessions",
   "django.contrib.messages",
   "django.contrib.staticfiles",
+  "storages",
   "apps.core",
   "apps.users",
   "apps.authentication",
@@ -96,6 +102,7 @@ MIDDLEWARE = [
   "apps.core.middlewares.JWTAuthenticationMiddleware",
   "apps.core.middlewares.RateLimitMiddleware",
   "apps.core.middlewares.ValidEmailPermissionMiddleware",
+  "ninja.compatibility.files.fix_request_files_middleware",
 ]
 
 
@@ -125,6 +132,22 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {"default": DEFAULT_DB}
 
 CACHES = {"default": DEFAULT_CACHE}
+
+
+# Object Storages
+STORAGES = {
+  "default": {
+    "BACKEND": DEFAULT_STORAGE_BACKEND,
+  },
+  "staticfiles": {
+    "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+  },
+}
+
+AWS_ACCESS_KEY_ID = _AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY = _AWS_SECRET_ACCESS_KEY
+AWS_STORAGE_BUCKET_NAME = _AWS_STORAGE_BUCKET_NAME
+AWS_S3_REGION_NAME = _AWS_S3_REGION_NAME
 
 AUTH_USER_MODEL = "users.User"
 
@@ -171,6 +194,10 @@ USE_I18N = True
 
 USE_TZ = True
 
+
+# Media Files
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/

@@ -23,6 +23,7 @@ DEBUG = bool(os.environ.get("DEBUG", False))
 
 USE_DEBUG_DB = bool(os.environ.get("USE_DEBUG_DB", DEBUG))
 USE_DEBUG_CACHE = bool(os.environ.get("USE_DEBUG_CACHE", DEBUG))
+USE_DEBUG_STORAGE = bool(os.environ.get("USE_DEBUG_STORAGE", DEBUG))
 
 TESTING = bool(os.environ.get("TESTING", False))
 
@@ -76,6 +77,26 @@ if USE_DEBUG_CACHE:
     "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     "LOCATION": "unique-snowflake",
   }
+
+# Object Storages
+AWS_STORAGE_BUCKET_NAME = os.environ.get(
+  "AWS_STORAGE_BUCKET_NAME", "autogestao-storage"
+)
+AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", None)
+if AWS_S3_REGION_NAME is None:
+  raise MissingRequiredEnvVarError("AWS_S3_REGION_NAME is required.")
+
+DEFAULT_STORAGE_BACKEND = "storages.backends.s3boto3.S3Boto3Storage"
+if USE_DEBUG_STORAGE:
+  DEFAULT_STORAGE_BACKEND = "django.core.files.storage.FileSystemStorage"
+
+# AWS Keys
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", None)
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", None)
+if AWS_ACCESS_KEY_ID is None or AWS_SECRET_ACCESS_KEY is None:
+  raise MissingRequiredEnvVarError(
+    "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are required."
+  )
 
 # Email
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
