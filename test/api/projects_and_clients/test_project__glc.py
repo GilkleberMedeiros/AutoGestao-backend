@@ -36,6 +36,7 @@ class BaseProjectTestCase(AuthenticatedTestCase):
       name="Api Test Project",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
 
@@ -99,6 +100,10 @@ class ProjectsRoute_Get(BaseProjectTestCase):
 
     self.assertEqual(res.status_code, 200)
     data = res.json()
+    self.assertEqual(data["client_id"], str(self.client_obj.id))
+    self.assertEqual(data["labor_fee"], "50.00")
+    self.assertEqual(data["estimated_cost"], "100.00")
+    self.assertEqual(data["estimated_deadline"], "2026-12-31")
     self.assertEqual(data["name"], "Api Test Project")
     self.assertEqual(data["id"], str(self.project_obj.id))
 
@@ -134,6 +139,7 @@ class ProjectsRoute_Create(BaseProjectTestCase):
       "description": "test",
       "estimated_deadline": "2026-12-31",
       "estimated_cost": 200.00,
+      "labor_fee": 50.00,
       "colortag": "#000000",
       "client_id": str(self.client_obj.id),
     }
@@ -151,6 +157,7 @@ class ProjectsRoute_Create(BaseProjectTestCase):
       "client_id": str(self.client_obj.id),
       "estimated_deadline": "2026-12-31",
       "estimated_cost": 200.00,
+      "labor_fee": 50.00,
     }
     res = self.client.post("", data=data)
     self.assertEqual(res.status_code, 401)
@@ -163,6 +170,7 @@ class ProjectsRoute_Create(BaseProjectTestCase):
       "client_id": str(self.client_obj.id),
       "estimated_deadline": "2026-12-31",
       "estimated_cost": 200.00,
+      "labor_fee": 50.00,
     }
     self.user.is_email_valid = False
     self.user.save()
@@ -178,6 +186,7 @@ class ProjectsRoute_Create(BaseProjectTestCase):
       "client_id": str(uuid.uuid4()),
       "estimated_deadline": "2026-12-31",
       "estimated_cost": 200.00,
+      "labor_fee": 50.00,
     }
     res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
     self.assertEqual(res.status_code, 404)
@@ -189,6 +198,7 @@ class ProjectsRoute_Create(BaseProjectTestCase):
       "description": "test",
       "estimated_deadline": "2026-12-31",
       "estimated_cost": 200.00,
+      "labor_fee": 50.00,
       "colortag": "#000000",
       "client_id": str(self.client_obj.id),
     }

@@ -1,7 +1,7 @@
-from ninja import Router, Query
+from ninja import Router, Query, File
+from ninja.files import UploadedFile
+
 from apps.core.exceptions import ResourceNotFoundError
-
-
 from apps.core.schemas.response import BaseAPIResponse, PaginatedAPIResponse
 from apps.core.utils.paginate import paginate_route
 from apps.projects_and_clients.schemas.project import (
@@ -21,6 +21,7 @@ from apps.projects_and_clients.services.project import (
   ProjectNeverClosedError,
   ReopenPeriodExpiredError,
 )
+from apps.projects_and_clients.models import Project
 
 router = Router()
 
@@ -197,3 +198,36 @@ def reopen_project(request, project_id: str):
     return 400, {"details": str(e), "success": False}
 
   return 200, reopened
+
+
+@router.post(
+  "/{project_id}/upload-cover-photo",
+  response={
+    200: ProjectSchema,
+    400: BaseAPIResponse,
+    401: BaseAPIResponse,
+    404: BaseAPIResponse,
+  },
+)
+def upload_cover_photo(request, project_id: str, file: File[UploadedFile]):
+  if not request.user.is_authenticated:
+    return 401, {"details": "Unauthenticated", "success": False}
+
+  if file.content_type not in ["image/jpeg", "image/png"]:
+    return 400, {
+      "details": "Invalid file type. Should be image, jpeg or png",
+      "success": False,
+    }
+
+  project = Project.objects.filter(id=project_id, user=request.user).first()
+
+  if not project:
+    return 404, {
+      "details": f"Project with id {project_id} not found.",
+      "success": False,
+    }
+
+  project.cover_photo = file
+  project.save()
+
+  return 200, project

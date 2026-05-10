@@ -33,6 +33,7 @@ class BaseTaskTestCase(AuthenticatedTestCase):
       name="Api Test Project",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
 

@@ -20,11 +20,13 @@ class ProjectSchema(ModelSchema):
       "profitability",
       "hour_profitability",
       "spent_time",
+      "labor_fee",
       "status",
       "created_at",
       "updated_at",
       "closed_at",
       "colortag",
+      "cover_photo",
     ]
 
   client_id: UUID
@@ -38,6 +40,7 @@ class CreateProjectReq(ModelSchema):
       "description",
       "estimated_deadline",
       "estimated_cost",
+      "labor_fee",
       "colortag",
     ]
 
@@ -52,6 +55,7 @@ class UpdateProjectReq(ModelSchema):
       "description",
       "estimated_deadline",
       "estimated_cost",
+      "labor_fee",
       "colortag",
     ]
 
@@ -64,6 +68,7 @@ class PartialUpdateProjectReq(ModelSchema):
       "description",
       "estimated_deadline",
       "estimated_cost",
+      "labor_fee",
       "colortag",
     ]
     fields_optional = "__all__"

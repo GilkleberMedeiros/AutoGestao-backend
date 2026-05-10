@@ -55,6 +55,7 @@ class ProjectsRoute_Update(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     token = self._get_valid_token()
@@ -62,6 +63,7 @@ class ProjectsRoute_Update(BaseProjectTestCase):
       "name": "Updated Project",
       "estimated_deadline": "2026-12-31",
       "estimated_cost": 200.00,
+      "labor_fee": 50.00,
     }
 
     res = self.client.put(
@@ -79,6 +81,7 @@ class ProjectsRoute_Update(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="CONCLUDED",
     )
     token = self._get_valid_token()
@@ -86,6 +89,7 @@ class ProjectsRoute_Update(BaseProjectTestCase):
       "name": "Updated Project",
       "estimated_deadline": "2026-12-31",
       "estimated_cost": 200.00,
+      "labor_fee": 50.00,
     }
 
     res = self.client.put(
@@ -100,6 +104,7 @@ class ProjectsRoute_Update(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     res = self.client.put(f"{project.id}")
@@ -113,6 +118,7 @@ class ProjectsRoute_Update(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     token = self._get_valid_token()
@@ -120,6 +126,7 @@ class ProjectsRoute_Update(BaseProjectTestCase):
       "name": "Updated Project",
       "estimated_deadline": "2026-12-31",
       "estimated_cost": 200.00,
+      "labor_fee": 50.00,
     }
     self.user.is_email_valid = False
     self.user.save()
@@ -139,6 +146,7 @@ class ProjectsRoute_PartialUpdate(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     token = self._get_valid_token()
@@ -158,6 +166,7 @@ class ProjectsRoute_PartialUpdate(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     data = {"name": "Partially Updated Project"}
@@ -172,6 +181,7 @@ class ProjectsRoute_PartialUpdate(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     token = self._get_valid_token()
@@ -197,6 +207,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     token = self._get_valid_token()
@@ -221,6 +232,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     token = self._get_valid_token()
@@ -241,6 +253,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="CONCLUDED",
       closed_at=timezone.now() - timedelta(days=2),
     )
@@ -260,6 +273,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="CONCLUDED",
     )
     token = self._get_valid_token()
@@ -279,6 +293,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="CONCLUDED",
       closed_at=timezone.now() - timedelta(days=10),
     )
@@ -296,6 +311,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="CONCLUDED",
     )
     res = self.client.post(f"{project.id}/reopen")
@@ -309,6 +325,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="CONCLUDED",
     )
     token = self._get_valid_token()
@@ -328,6 +345,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     res = self.client.patch(f"{project.id}/close")
@@ -341,6 +359,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     token = self._get_valid_token()
@@ -368,6 +387,7 @@ class ProjectsRoute_Delete(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     token = self._get_valid_token()
@@ -391,6 +411,7 @@ class ProjectsRoute_Delete(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     res = self.client.delete(f"{project.id}")
@@ -404,6 +425,7 @@ class ProjectsRoute_Delete(BaseProjectTestCase):
       name="Test Update",
       estimated_deadline="2026-12-31",
       estimated_cost=100.00,
+      labor_fee=50.00,
       status="OPEN",
     )
     token = self._get_valid_token()

@@ -48,6 +48,7 @@ class ProjectService:
       description=data.description,
       estimated_deadline=data.estimated_deadline,
       estimated_cost=data.estimated_cost,
+      labor_fee=data.labor_fee,
       colortag=data.colortag,
     )
     return project

@@ -44,6 +44,7 @@ class TestProjectService_Create(TestCase):
       description="Desc",
       estimated_deadline="2026-12-31",
       estimated_cost="1000.00",
+      labor_fee="50.00",
       colortag="#ff0000",
       client_id=str(client.id),
     )
@@ -63,6 +64,7 @@ class TestProjectService_Create(TestCase):
       description="Desc",
       estimated_deadline="2026-12-31",
       estimated_cost="1000.00",
+      labor_fee="50.00",
       colortag="#ff0000",
       client_id=str(uuid.uuid4()),
     )
@@ -81,6 +83,7 @@ class TestProjectService_Create(TestCase):
       description="Desc",
       estimated_deadline="2026-12-31",
       estimated_cost="1000.00",
+      labor_fee="50.00",
       colortag="#ff0000",
       client_id=str(uuid.uuid4()),
     )
@@ -108,6 +111,7 @@ class TestProjectService_Create(TestCase):
       description="Desc",
       estimated_deadline="2026-12-31",
       estimated_cost="1000.00",
+      labor_fee="50.00",
       colortag="#ff0000",
       profitability="1000.00",  # Create project should not fill profitability and hour_profitability
       hour_profitability="1000.00",
@@ -176,6 +180,7 @@ class TestProjectService_Update(TestCase):
       description="",
       estimated_deadline="2026-12-31",
       estimated_cost=200,
+      labor_fee=50,
       actual_deadline=None,
       actual_cost=None,
       profitability=None,
@@ -199,6 +204,7 @@ class TestProjectService_Update(TestCase):
       description="",
       estimated_deadline="2026-12-31",
       estimated_cost=200,
+      labor_fee=50,
       actual_deadline=None,
       actual_cost=None,
       profitability=None,

@@ -105,6 +105,7 @@ class Project(models.Model):
     max_digits=20, decimal_places=2, null=True, blank=True
   )
   spent_time = models.DurationField(null=True, blank=True)
+  labor_fee = models.DecimalField(max_digits=20, decimal_places=2)
 
   status = models.CharField(choices=STATUS_CHOICES, default="OPEN")
 
@@ -114,6 +115,9 @@ class Project(models.Model):
 
   # TODO: Add validator to valid the hexadecimal color (format: #000000)
   colortag = models.CharField(max_length=7, null=True, blank=True)
+  cover_photo = models.ImageField(
+    upload_to="projects/cover-photos", null=True, blank=True
+  )
 
   def __str__(self):
     return self.name
