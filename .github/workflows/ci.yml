@@ -40,5 +40,6 @@ jobs:
           EMAIL_HOST_PASSWORD: "ci-password"
           USE_DEBUG_DB: "True"
           USE_DEBUG_CACHE: "True"
+          USE_DEBUG_STORAGE: "True"
           TESTING: "True"
         run: uv run manage.py test

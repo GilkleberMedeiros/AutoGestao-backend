@@ -83,7 +83,7 @@ AWS_STORAGE_BUCKET_NAME = os.environ.get(
   "AWS_STORAGE_BUCKET_NAME", "autogestao-storage"
 )
 AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", None)
-if AWS_S3_REGION_NAME is None:
+if AWS_S3_REGION_NAME is None and not USE_DEBUG_STORAGE:
   raise MissingRequiredEnvVarError("AWS_S3_REGION_NAME is required.")
 
 DEFAULT_STORAGE_BACKEND = "storages.backends.s3boto3.S3Boto3Storage"
@@ -93,7 +93,9 @@ if USE_DEBUG_STORAGE:
 # AWS Keys
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", None)
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", None)
-if AWS_ACCESS_KEY_ID is None or AWS_SECRET_ACCESS_KEY is None:
+if (
+  AWS_ACCESS_KEY_ID is None or AWS_SECRET_ACCESS_KEY is None
+) and not USE_DEBUG_STORAGE:
   raise MissingRequiredEnvVarError(
     "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are required."
   )
