@@ -10,7 +10,8 @@ class TaskSchema(ModelSchema):
     fields = [
       "id",
       "name",
-      "done_at",
+      "do_at",
+      "is_done",
       "created_at",
       "updated_at",
     ]
@@ -25,8 +26,7 @@ class MovimentationInTask(ModelSchema):
 class CreateTaskReq(ModelSchema):
   class Meta:
     model = Task
-    fields = ["name", "done_at"]
-    fields_optional = ["done_at"]
+    fields = ["name", "do_at"]
 
   movimentation: MovimentationInTask | None = None
 
@@ -34,11 +34,11 @@ class CreateTaskReq(ModelSchema):
 class UpdateTaskReq(ModelSchema):
   class Meta:
     model = Task
-    fields = ["name", "done_at"]
+    fields = ["name", "do_at"]
 
 
 class PartialUpdateTaskReq(ModelSchema):
   class Meta:
     model = Task
-    fields = ["name", "done_at"]
+    fields = ["name", "do_at"]
     fields_optional = "__all__"

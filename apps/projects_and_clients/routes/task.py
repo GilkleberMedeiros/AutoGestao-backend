@@ -106,6 +106,31 @@ def partial_update_task(
   return 200, updated
 
 
+@router.patch(
+  "/{project_id}/tasks/{task_id}/mark-unmark",
+  response={200: TaskSchema, 404: BaseAPIResponse},
+)
+def mark_unmark_task(request, task_id: str, project_id: str):
+  """
+  Endpoint to mark or unmark a task as done.
+  If the task is currently marked as done, it will be unmarked,
+  and vice versa.
+  """
+  try:
+    task = TaskService.get(request.user, task_id, project_id)
+    task.is_done = not task.is_done
+    task.save()
+  except ResourceNotFoundError:
+    return 404, {
+      "details": "Task associated with project wasn't found. "
+      "It either doesn't exist or doesn't belong to the given "
+      "project or user.",
+      "success": False,
+    }
+
+  return 200, task
+
+
 @router.delete(
   "/{project_id}/tasks/{task_id}", response={200: BaseAPIResponse, 404: BaseAPIResponse}
 )

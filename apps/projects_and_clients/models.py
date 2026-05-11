@@ -136,7 +136,8 @@ class Task(models.Model):
   )
   name = models.CharField(max_length=128)
 
-  done_at = models.DateTimeField(null=True, blank=True)
+  do_at = models.DateTimeField()
+  is_done = models.BooleanField(default=False)
   created_at = models.DateTimeField(auto_now_add=True)
   updated_at = models.DateTimeField(auto_now=True)
 

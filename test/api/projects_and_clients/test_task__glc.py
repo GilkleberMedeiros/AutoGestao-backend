@@ -1,4 +1,7 @@
 import uuid
+
+from django.utils import timezone
+
 from test.api.base import APIClient
 from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
@@ -40,6 +43,7 @@ class BaseTaskTestCase(AuthenticatedTestCase):
     cls.task_obj = Task.objects.create(
       project=cls.project_obj,
       name="Api Test Task",
+      do_at=timezone.now() + timezone.timedelta(days=1),
     )
 
     cls.URL = f"/api/projects/{cls.project_obj.id}/tasks"
@@ -75,6 +79,7 @@ class TasksRoute_List(BaseTaskTestCase):
     self.assertEqual(len(data["items"]), 1)
 
     task_data = data["items"][0]
+    self.assertIsNotNone(task_data["do_at"])
     self.assertEqual(task_data["name"], "Api Test Task")
     self.assertEqual(task_data["id"], str(self.task_obj.id))
 
@@ -100,6 +105,7 @@ class TasksRoute_Get(BaseTaskTestCase):
 
     self.assertEqual(res.status_code, 200)
     data = res.json()
+    self.assertIsNotNone(data["do_at"])
     self.assertEqual(data["name"], "Api Test Task")
     self.assertEqual(data["id"], str(self.task_obj.id))
 
@@ -128,14 +134,17 @@ class TasksRoute_Get(BaseTaskTestCase):
 class TasksRoute_Create(BaseTaskTestCase):
   def test_create_task_success_outcome_validation(self):
     token = self._get_valid_token()
+    do_at = (timezone.now() + timezone.timedelta(days=2)).isoformat()
     data = {
       "name": "New Task",
+      "do_at": do_at,
     }
 
     res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
     res_data = res.json()
 
     self.assertEqual(res.status_code, 201)
+    self.assertIsNotNone(res_data["do_at"])
     self.assertEqual(res_data["name"], "New Task")
     self.assertIn("id", res_data)
 
@@ -145,6 +154,7 @@ class TasksRoute_Create(BaseTaskTestCase):
   def test_create_task_unauthenticated_returns_401(self):
     data = {
       "name": "New Task",
+      "do_at": (timezone.now() + timezone.timedelta(days=2)).isoformat(),
     }
     res = self.client.post("", data=data)
     self.assertEqual(res.status_code, 401)
@@ -156,6 +166,7 @@ class TasksRoute_Create(BaseTaskTestCase):
 
     data = {
       "name": "New Task",
+      "do_at": (timezone.now() + timezone.timedelta(days=2)).isoformat(),
     }
     res = self.client.post("", data=data, headers={"Authorization": f"Bearer {token}"})
     self.assertEqual(res.status_code, 403)
@@ -164,6 +175,7 @@ class TasksRoute_Create(BaseTaskTestCase):
     token = self._get_valid_token()
     data = {
       "name": "New Task",
+      "do_at": (timezone.now() + timezone.timedelta(days=2)).isoformat(),
     }
     # Create a new client pointing to an invalid project
     client = APIClient(path_prefix=f"/api/projects/{uuid.uuid4()}/tasks")
@@ -184,6 +196,7 @@ class TasksRoute_Create(BaseTaskTestCase):
 
     data = {
       "name": "Task with Movimentation",
+      "do_at": (timezone.now() + timezone.timedelta(days=2)).isoformat(),
       "movimentation": {
         "amount": 150.75,
         "balance": "+",
@@ -209,6 +222,7 @@ class TasksRoute_Create(BaseTaskTestCase):
 
     data = {
       "name": "Task with Movimentation",
+      "do_at": (timezone.now() + timezone.timedelta(days=2)).isoformat(),
       "movimentation": {
         "amount": 150.75,
         "balance": "+",
@@ -222,6 +236,7 @@ class TasksRoute_Create(BaseTaskTestCase):
     token = self._get_valid_token()
     data = {
       "name": "New Task",
+      "do_at": (timezone.now() + timezone.timedelta(days=2)).isoformat(),
       "non_existent_field": "non_existent_value",
     }
 

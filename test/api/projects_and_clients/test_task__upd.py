@@ -1,5 +1,4 @@
 import uuid
-import datetime
 from django.utils import timezone
 
 from test.api.conftest import AuthenticatedTestCase
@@ -57,6 +56,7 @@ class BaseTaskTestCase(AuthenticatedTestCase):
       self.task_obj = Task.objects.create(
         project=self.project_obj,
         name="Api Test Task",
+        do_at=timezone.now() + timezone.timedelta(days=1),
       )
 
   def tearDown(self):
@@ -72,9 +72,10 @@ class BaseTaskTestCase(AuthenticatedTestCase):
 class TasksRoute_Update(BaseTaskTestCase):
   def test_update_task_success_outcome_validation(self):
     token = self._get_valid_token()
+    do_at = timezone.now() + timezone.timedelta(days=2)
     data = {
       "name": "Updated Task Name",
-      "done_at": "2026-12-31T23:59:59Z",
+      "do_at": do_at.isoformat(),
     }
 
     res = self.client.put(
@@ -84,14 +85,15 @@ class TasksRoute_Update(BaseTaskTestCase):
 
     self.assertEqual(res.status_code, 200)
     self.assertEqual(res_data["name"], "Updated Task Name")
+    self.assertIsNotNone(res_data["do_at"])
 
     # Check DB
     self.task_obj.refresh_from_db()
     self.assertEqual(self.task_obj.name, "Updated Task Name")
-    self.assertIsNotNone(self.task_obj.done_at)
+    self.assertEqual(self.task_obj.do_at, do_at)
 
   def test_update_task_unauthenticated_returns_401(self):
-    data = {"name": "Updated Task Name"}
+    data = {"name": "Updated Task Name", "do_at": "2026-12-31T23:59:59Z"}
     res = self.client.put(f"/{self.task_obj.id}", data=data)
     self.assertEqual(res.status_code, 401)
 
@@ -99,7 +101,10 @@ class TasksRoute_Update(BaseTaskTestCase):
     token = self._get_valid_token()
     self.user.is_email_valid = False
     self.user.save()
-    data = {"name": "Updated Task Name"}
+    data = {
+      "name": "Updated Task Name",
+      "do_at": timezone.now().isoformat(),
+    }
     res = self.client.put(
       f"/{self.task_obj.id}", data=data, headers={"Authorization": f"Bearer {token}"}
     )
@@ -107,7 +112,7 @@ class TasksRoute_Update(BaseTaskTestCase):
 
   def test_update_task_invalid_id_returns_404(self):
     token = self._get_valid_token()
-    data = {"name": "Updated Task Name"}
+    data = {"name": "Updated Task Name", "do_at": timezone.now().isoformat()}
     res = self.client.put(
       f"/{uuid.uuid4()}", data=data, headers={"Authorization": f"Bearer {token}"}
     )
@@ -117,12 +122,14 @@ class TasksRoute_Update(BaseTaskTestCase):
     token = self._get_valid_token()
     data = {
       "name": "Updated Task Name",
+      "do_at": timezone.now() + timezone.timedelta(days=2),
       "invalid_field": "invalid_value",
     }
     res = self.client.put(
       f"/{self.task_obj.id}", data=data, headers={"Authorization": f"Bearer {token}"}
     )
     self.assertEqual(res.status_code, 200)
+    self.assertIsNotNone(res.json()["do_at"])
     self.assertEqual(res.json()["name"], "Updated Task Name")
     self.assertIsNone(res.json().get("invalid_field"))
 
@@ -133,6 +140,7 @@ class TasksRoute_PartialUpdate(BaseTaskTestCase):
     data = {
       "name": "Partially Updated Task",
     }
+    old_do_at = self.task_obj.do_at
 
     res = self.client.patch(
       f"/{self.task_obj.id}", data=data, headers={"Authorization": f"Bearer {token}"}
@@ -140,30 +148,33 @@ class TasksRoute_PartialUpdate(BaseTaskTestCase):
     res_data = res.json()
 
     self.assertEqual(res.status_code, 200)
+    self.assertIsNotNone(res_data["do_at"])
     self.assertEqual(res_data["name"], "Partially Updated Task")
 
     # Check DB
     self.task_obj.refresh_from_db()
+    self.assertEqual(
+      self.task_obj.do_at, old_do_at
+    )  # remains equal since we didn't update it
     self.assertEqual(self.task_obj.name, "Partially Updated Task")
 
-  def test_partial_update_task_done_at_success_outcome_validation(self):
+  def test_partial_update_task_do_at_success_outcome_validation(self):
     token = self._get_valid_token()
+    do_at = timezone.now() + timezone.timedelta(days=2)
     data = {
-      "done_at": "2026-12-31T23:59:59Z",
+      "do_at": do_at.isoformat(),
     }
     res = self.client.patch(
       f"/{self.task_obj.id}", data=data, headers={"Authorization": f"Bearer {token}"}
     )
     res_data = res.json()
     self.assertEqual(res.status_code, 200)
-    self.assertEqual(res_data["done_at"], "2026-12-31T23:59:59Z")
+    self.assertIsNotNone(res_data["do_at"])
 
     self.task_obj.refresh_from_db()
     self.assertEqual(
-      self.task_obj.done_at,
-      datetime.datetime(
-        2026, 12, 31, 23, 59, 59, tzinfo=timezone.get_current_timezone()
-      ),
+      self.task_obj.do_at,
+      do_at,
     )
 
   def test_partial_update_task_unauthenticated_returns_401(self):
@@ -232,7 +243,10 @@ class TasksRoute_Delete(BaseTaskTestCase):
       mov_group=mov_group, amount=50.0, balance="-", reason="test delete"
     )
     task_with_mov = Task.objects.create(
-      project=self.project_obj, name="Task to Delete", movimentation=movimentation
+      project=self.project_obj,
+      name="Task to Delete",
+      do_at=timezone.now(),
+      movimentation=movimentation,
     )
 
     res = self.client.delete(

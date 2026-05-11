@@ -1,5 +1,3 @@
-from django.utils import timezone
-
 from apps.projects_and_clients.schemas.task import (
   CreateTaskReq,
   UpdateTaskReq,
@@ -26,8 +24,6 @@ class TaskService:
   @staticmethod
   def create(user: User, project_id: str, data: CreateTaskReq) -> Task:
     data = data.model_dump(exclude_unset=True)
-    if data.get("done_at") is None or not data["done_at"]:
-      data["done_at"] = timezone.now()
 
     project = Project.objects.filter(id=project_id, user=user).first()
 
@@ -50,6 +46,7 @@ class TaskService:
       )
       data["movimentation"] = movimentation
 
+    # Create task
     task = Task.objects.create(project=project, **data)
     task.save()
 
