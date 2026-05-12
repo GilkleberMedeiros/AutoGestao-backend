@@ -1,5 +1,5 @@
 from django.utils import timezone
-from apps.projects_and_clients.models import Project, Client
+from apps.projects_and_clients.models import Project, Client, Task
 from apps.projects_and_clients.schemas.project import (
   CreateProjectReq,
   UpdateProjectReq,
@@ -103,16 +103,29 @@ class ProjectService:
 
   @staticmethod
   def calculate_profitability(project: Project) -> Project:
-    # project.actual_cost + Tasks.gains - Tasks.costs
-    # Tasks must be implemented to calculate profitability
-    raise NotImplementedError("Tasks must be implemented to calculate profitability.")
+    # project.labor_fee + (sum(Task.gains) - sum(Task.costs))
+    tasks = Task.objects.filter(project=project).prefetch_related("movimentation")
+    # if task has movimentation, sum its value calling Movimentation.get_movimentation_value()
+    tasks_value = sum(
+      [
+        task.movimentation.get_movimentation_value()
+        for task in tasks
+        if task.movimentation
+      ]
+    )
+    project.profitability = float(project.labor_fee) + tasks_value
+    return project
 
   @staticmethod
   def calculate_hour_profitability(project: Project) -> Project:
+    """
+    Gives hour_profitability per hour.
+    """
     # project.profitability / project.spent_time
-    raise NotImplementedError(
-      "Tasks must be implemented to calculate hour profitability."
+    project.hour_profitability = float(project.profitability) / (
+      project.spent_time.total_seconds() / 3600  # Convert seconds to hours
     )
+    return project
 
   @staticmethod
   def close(user, project_id: str, data: ProjectCloseSchema) -> Project:
@@ -123,8 +136,12 @@ class ProjectService:
     if data.status not in ["CONCLUDED", "PARTIALLY_CONCLUDED", "CANCELLED"]:
       raise InvalidCloseStatusError("Invalid close status.")
 
-    # TODO: project.profitability = ProjectService.calculate_profitability(project)
-    # TODO: project.hour_profitability = ProjectService.calculate_hour_profitability(project)
+    project.actual_cost = float(data.actual_cost)
+    project.actual_deadline = data.actual_deadline
+    project.spent_time = data.spent_time
+
+    ProjectService.calculate_profitability(project)
+    ProjectService.calculate_hour_profitability(project)
 
     project.status = data.status
     project.closed_at = timezone.now()

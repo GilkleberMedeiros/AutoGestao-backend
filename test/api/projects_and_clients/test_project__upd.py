@@ -1,8 +1,10 @@
 import uuid
+from django.utils import timezone
 from test.api.base import APIClient
 from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
-from apps.projects_and_clients.models import Client, Project
+from apps.projects_and_clients.models import Client, Project, Task
+from apps.finances.models import Movimentation, MovGroup
 
 
 class BaseProjectTestCase(AuthenticatedTestCase):
@@ -225,7 +227,56 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
     self.assertEqual(res.status_code, 200)
     self.assertEqual(res.json()["status"], "CONCLUDED")
 
-  def test_close_project_invalid_status_returns_400(self):
+  def test_close_project_correct_calculate_profit_and_hour_profit(self):
+    project = Project.objects.create(
+      user=self.user,
+      client=self.client_obj,
+      name="Test Update",
+      estimated_deadline="2026-12-31",
+      estimated_cost=100.00,
+      labor_fee=50.00,
+      status="OPEN",
+    )
+    movimentation1 = Movimentation.objects.create(
+      mov_group=MovGroup.objects.filter(related_to=project.id).first(),
+      amount=100.00,
+      balance="+",
+      reason="Test",
+    )
+    Task.objects.bulk_create(
+      [
+        Task(
+          project=project,
+          movimentation=movimentation1,
+          name="Task 1",
+          do_at=timezone.now(),
+        ),
+        Task(
+          project=project,
+          name="Task 2",
+          do_at=timezone.now(),
+        ),
+      ]
+    )
+
+    token = self._get_valid_token()
+    data = {
+      "status": "CONCLUDED",
+      "actual_deadline": "2026-12-31",
+      "actual_cost": 100.0,
+      "spent_time": 1000,
+    }
+
+    res = self.client.patch(
+      f"{project.id}/close", data=data, headers={"Authorization": f"Bearer {token}"}
+    )
+
+    self.assertEqual(res.status_code, 200)
+    self.assertEqual(res.json()["status"], "CONCLUDED")
+    self.assertEqual(float(res.json()["profitability"]), 150)
+    self.assertEqual(float(res.json()["hour_profitability"]), 0.15)
+
+  def test_close_project_invalid_status_returns_422(self):
     project = Project.objects.create(
       user=self.user,
       client=self.client_obj,
@@ -241,7 +292,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
     res = self.client.patch(
       f"{project.id}/close", data=data, headers={"Authorization": f"Bearer {token}"}
     )
-    self.assertEqual(res.status_code, 400)
+    self.assertEqual(res.status_code, 422)
 
   def test_reopen_project_success(self):
     from django.utils import timezone

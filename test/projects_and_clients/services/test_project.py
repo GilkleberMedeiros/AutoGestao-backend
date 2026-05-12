@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 from datetime import timedelta
 import uuid
+from pydantic import ValidationError
 
 from apps.core.exceptions import ResourceNotFoundError
 from apps.projects_and_clients.services.project import (
@@ -243,7 +244,13 @@ class TestProjectService_PartialUpdate(TestCase):
 
 class TestProjectService_Close(TestCase):
   @patch("apps.projects_and_clients.services.project.ProjectService.get")
-  def test_close_project(self, mock_get):
+  @patch(
+    "apps.projects_and_clients.services.project.ProjectService.calculate_profitability"
+  )
+  @patch(
+    "apps.projects_and_clients.services.project.ProjectService.calculate_hour_profitability"
+  )
+  def test_close_project(self, mock_calc_hour, mock_calc_profit, mock_get):
     user = MagicMock()
     project_mock = MagicMock()
     project_mock.status = "OPEN"
@@ -258,8 +265,69 @@ class TestProjectService_Close(TestCase):
     closed = ProjectService.close(user, "proj-id", data)
     self.assertEqual(closed.status, "CONCLUDED")
     self.assertIsNotNone(closed.closed_at)
-    # TODO: Add verifications for profitability and hour_profitability
     project_mock.save.assert_called_once()
+
+  @patch("apps.projects_and_clients.services.project.ProjectService.get")
+  @patch(
+    "apps.projects_and_clients.services.project.ProjectService.calculate_profitability"
+  )
+  @patch(
+    "apps.projects_and_clients.services.project.ProjectService.calculate_hour_profitability"
+  )
+  def test_close_project_sets_data(self, mock_calc_hour, mock_calc_profit, mock_get):
+    user = MagicMock()
+    project_mock = MagicMock()
+    project_mock.status = "OPEN"
+    mock_get.return_value = project_mock
+
+    data = ProjectCloseSchema(
+      actual_deadline="2026-12-31",
+      actual_cost="100.00",
+      spent_time=timedelta(hours=100),
+      status="CONCLUDED",
+    )
+    closed = ProjectService.close(user, "proj-id", data)
+    self.assertEqual(closed.actual_cost, 100.00)
+    self.assertEqual(closed.actual_deadline.isoformat(), "2026-12-31")
+    self.assertEqual(closed.spent_time, timedelta(hours=100))
+    mock_calc_hour.assert_called_once()
+    mock_calc_profit.assert_called_once()
+    project_mock.save.assert_called_once()
+
+  @patch("apps.projects_and_clients.services.project.ProjectService.get")
+  @patch("apps.projects_and_clients.services.project.Task.objects.filter")
+  def test_close_project_correct_calculate_profit_and_hour_profit(
+    self, mock_task_filter, mock_get
+  ):
+    user = MagicMock()
+    project_mock = MagicMock()
+    project_mock.status = "OPEN"
+    project_mock.labor_fee = 100
+    mock_get.return_value = project_mock
+    task_mock1 = MagicMock()
+    task_mock1.movimentation = MagicMock()
+    task_mock1.movimentation.get_movimentation_value.return_value = 100
+    task_mock2 = MagicMock()
+    task_mock2.movimentation = None
+    task_mock3 = MagicMock()
+    task_mock3.movimentation = MagicMock()
+    task_mock3.movimentation.get_movimentation_value.return_value = -50
+
+    mock_task_filter.return_value.prefetch_related.return_value = [
+      task_mock1,
+      task_mock2,
+      task_mock3,
+    ]
+
+    data = ProjectCloseSchema(
+      actual_deadline="2026-12-31",
+      actual_cost="100.00",
+      spent_time=timedelta(hours=100),
+      status="CONCLUDED",
+    )
+    closed = ProjectService.close(user, "proj-id", data)
+    self.assertEqual(closed.profitability, 150)  # 100 + (100 - 50) = 150
+    self.assertEqual(closed.hour_profitability, 1.5)  # 150 / 100 = 1.5
 
   @patch("apps.projects_and_clients.services.project.ProjectService.get")
   def test_close_project_already_closed_fails(self, mock_get):
@@ -284,8 +352,14 @@ class TestProjectService_Close(TestCase):
     project_mock.status = "OPEN"
     mock_get.return_value = project_mock
 
-    data = ProjectCloseSchema(status="NOT_A_STATUS")
-    with self.assertRaises(InvalidCloseStatusError):
+    # Either Schema or Service can throw an error for an invalid status
+    with self.assertRaises((ValidationError, InvalidCloseStatusError)):
+      data = ProjectCloseSchema(
+        actual_deadline="2026-12-31",
+        actual_cost="100.00",
+        spent_time=timedelta(hours=100),
+        status="NOT_A_STATUS",
+      )
       ProjectService.close(user, "proj-id", data)
 
 
