@@ -1,7 +1,10 @@
-from typing import Optional
+from typing import Optional, Literal
 from uuid import UUID
+from datetime import date
 
-from ninja import ModelSchema, FilterSchema
+from ninja import Schema, ModelSchema, FilterSchema
+from pydantic import field_validator
+from django.utils import timezone
 
 from apps.projects_and_clients.models import Project
 
@@ -80,12 +83,24 @@ class ProjectFilterSchema(FilterSchema):
   colortag: Optional[str] = None
 
 
-class ProjectCloseSchema(ModelSchema):
-  class Meta:
-    model = Project
-    fields = [
-      "actual_deadline",
-      "actual_cost",
-      "spent_time",
-      "status",
-    ]
+class ProjectCloseSchema(Schema):
+  actual_deadline: date
+  actual_cost: float
+  spent_time: timezone.timedelta
+  status: Literal[
+    Project.CONCLUDED_STATUS,
+    Project.PARTIALLY_CONCLUDED_STATUS,
+    Project.CANCELLED_STATUS,
+  ]
+
+  @field_validator("spent_time", mode="before", check_fields=False)
+  def spent_time_as_hours(cls, v: str) -> str:
+    # Try convert to float (allows .00) and then to int to remove decimal part (.00).
+    try:
+      hours = float(v)
+      return timezone.timedelta(hours=int(hours))
+    except Exception:
+      pass
+
+    # If convert fails, it means that v can be a full time string, like "HH:MM:SS".
+    return v

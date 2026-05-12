@@ -79,11 +79,18 @@ class ClientAddress(models.Model):
 
 
 class Project(models.Model):
+  # For queries, control and separation/filters.
+  OPEN_STATUS = "OPEN"
+  CONCLUDED_STATUS = "CONCLUDED"
+  PARTIALLY_CONCLUDED_STATUS = "PARTIALLY_CONCLUDED"
+  CANCELLED_STATUS = "CANCELLED"
+
+  # For choices
   STATUS_CHOICES = [
-    ("OPEN", "Open"),
-    ("CONCLUDED", "Concluded"),
-    ("PARTIALLY_CONCLUDED", "Partially Concluded"),
-    ("CANCELLED", "Cancelled"),
+    (OPEN_STATUS, "Open"),
+    (CONCLUDED_STATUS, "Concluded"),
+    (PARTIALLY_CONCLUDED_STATUS, "Partially Concluded"),
+    (CANCELLED_STATUS, "Cancelled"),
   ]
 
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
