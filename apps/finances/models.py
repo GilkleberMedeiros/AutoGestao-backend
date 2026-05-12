@@ -52,3 +52,8 @@ class Movimentation(models.Model):
 
   def __str__(self):
     return self.reason
+
+  def get_movimentation_value(self) -> float:
+    if self.balance == "+":
+      return float(self.amount)
+    return -float(self.amount)
