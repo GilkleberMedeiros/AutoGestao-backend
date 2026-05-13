@@ -216,8 +216,8 @@ class Project(models.Model):
     if self.spent_time is None:
       return 0.0
 
-    # Use // instead of / to avoid float division.
-    hour_profitability = profitability // (self.spent_time.total_seconds() / 3600)
+    # Use / instead of // to allow float results (e.g. 0.15).
+    hour_profitability = profitability / (self.spent_time.total_seconds() / 3600)
     return hour_profitability
 
 

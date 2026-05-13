@@ -1,5 +1,5 @@
 from django.utils import timezone
-from apps.projects_and_clients.models import Project, Client, Task
+from apps.projects_and_clients.models import Project, Client
 from apps.projects_and_clients.schemas.project import (
   CreateProjectReq,
   UpdateProjectReq,
@@ -102,28 +102,6 @@ class ProjectService:
     return project
 
   @staticmethod
-  def calculate_profitability(project: Project) -> Project:
-    # project.labor_fee + (sum(Task.gains) - sum(Task.costs))
-    tasks = Task.objects.filter(project=project).prefetch_related("movimentation")
-    # if task has movimentation, sum its value calling Movimentation.value property
-    tasks_value = sum(
-      [task.movimentation.value for task in tasks if task.movimentation]
-    )
-    project.profitability = float(project.labor_fee) + tasks_value
-    return project
-
-  @staticmethod
-  def calculate_hour_profitability(project: Project) -> Project:
-    """
-    Gives hour_profitability per hour.
-    """
-    # project.profitability / project.spent_time
-    project.hour_profitability = float(project.profitability) / (
-      project.spent_time.total_seconds() / 3600  # Convert seconds to hours
-    )
-    return project
-
-  @staticmethod
   def close(user, project_id: str, data: ProjectCloseSchema) -> Project:
     project = ProjectService.get(user, project_id)
     if project.status != "OPEN":
@@ -136,8 +114,9 @@ class ProjectService:
     project.actual_deadline = data.actual_deadline
     project.spent_time = data.spent_time
 
-    ProjectService.calculate_profitability(project)
-    ProjectService.calculate_hour_profitability(project)
+    profitability = project.calc_project_profitability()
+    project.profitability = profitability
+    project.hour_profitability = project.calc_project_hour_profitability(profitability)
 
     project.status = data.status
     project.closed_at = timezone.now()

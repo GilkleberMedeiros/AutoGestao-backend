@@ -244,13 +244,7 @@ class TestProjectService_PartialUpdate(TestCase):
 
 class TestProjectService_Close(TestCase):
   @patch("apps.projects_and_clients.services.project.ProjectService.get")
-  @patch(
-    "apps.projects_and_clients.services.project.ProjectService.calculate_profitability"
-  )
-  @patch(
-    "apps.projects_and_clients.services.project.ProjectService.calculate_hour_profitability"
-  )
-  def test_close_project(self, mock_calc_hour, mock_calc_profit, mock_get):
+  def test_close_project(self, mock_get):
     user = MagicMock()
     project_mock = MagicMock()
     project_mock.status = "OPEN"
@@ -266,15 +260,11 @@ class TestProjectService_Close(TestCase):
     self.assertEqual(closed.status, "CONCLUDED")
     self.assertIsNotNone(closed.closed_at)
     project_mock.save.assert_called_once()
+    project_mock.calc_project_profitability.assert_called_once()
+    project_mock.calc_project_hour_profitability.assert_called_once()
 
   @patch("apps.projects_and_clients.services.project.ProjectService.get")
-  @patch(
-    "apps.projects_and_clients.services.project.ProjectService.calculate_profitability"
-  )
-  @patch(
-    "apps.projects_and_clients.services.project.ProjectService.calculate_hour_profitability"
-  )
-  def test_close_project_sets_data(self, mock_calc_hour, mock_calc_profit, mock_get):
+  def test_close_project_sets_data(self, mock_get):
     user = MagicMock()
     project_mock = MagicMock()
     project_mock.status = "OPEN"
@@ -290,12 +280,12 @@ class TestProjectService_Close(TestCase):
     self.assertEqual(closed.actual_cost, 100.00)
     self.assertEqual(closed.actual_deadline.isoformat(), "2026-12-31")
     self.assertEqual(closed.spent_time, timedelta(hours=100))
-    mock_calc_hour.assert_called_once()
-    mock_calc_profit.assert_called_once()
+    project_mock.calc_project_profitability.assert_called_once()
+    project_mock.calc_project_hour_profitability.assert_called_once()
     project_mock.save.assert_called_once()
 
   @patch("apps.projects_and_clients.services.project.ProjectService.get")
-  @patch("apps.projects_and_clients.services.project.Task.objects.filter")
+  @patch("apps.projects_and_clients.models.Task.objects.filter")
   def test_close_project_correct_calculate_profit_and_hour_profit(
     self, mock_task_filter, mock_get
   ):
@@ -318,6 +308,9 @@ class TestProjectService_Close(TestCase):
       task_mock2,
       task_mock3,
     ]
+
+    project_mock.calc_project_profitability.return_value = 150
+    project_mock.calc_project_hour_profitability.return_value = 1.5
 
     data = ProjectCloseSchema(
       actual_deadline="2026-12-31",
