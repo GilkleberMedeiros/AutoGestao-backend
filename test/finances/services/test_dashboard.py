@@ -130,3 +130,28 @@ class TestDashboardService_FastViews(TestCase):
     self.assertEqual(result["projects_total_gains"], 0.0)
     self.assertEqual(result["projects_total_costs"], 0.0)
     self.assertEqual(result["project_profitability"], 0.0)
+
+
+class TestDashboardService_ProjectsQS(TestCase):
+  @patch("apps.finances.services.dashboard.Project.objects.filter")
+  def test_projects_qs_filtering_and_optimization(self, mock_filter):
+    user = MagicMock()
+    period = DashboardPeriodFilter(
+      start_date=date(2026, 5, 1), end_date=date(2026, 5, 31)
+    )
+
+    mock_qs = MagicMock()
+    mock_filter.return_value = mock_qs
+    mock_qs.prefetch_related.return_value = mock_qs
+
+    result = DashboardService._projects_qs(user, period)
+
+    # Verify filtering
+    mock_filter.assert_called_once_with(
+      user=user, created_at__date__range=(period.start_date, period.end_date)
+    )
+
+    # Verify optimization (prefetching)
+    mock_qs.prefetch_related.assert_called_once_with("task_set__movimentation")
+
+    self.assertEqual(result, mock_qs)
