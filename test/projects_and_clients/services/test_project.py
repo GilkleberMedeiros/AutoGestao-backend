@@ -306,12 +306,12 @@ class TestProjectService_Close(TestCase):
     mock_get.return_value = project_mock
     task_mock1 = MagicMock()
     task_mock1.movimentation = MagicMock()
-    task_mock1.movimentation.get_movimentation_value.return_value = 100
+    task_mock1.movimentation.value = 100
     task_mock2 = MagicMock()
     task_mock2.movimentation = None
     task_mock3 = MagicMock()
     task_mock3.movimentation = MagicMock()
-    task_mock3.movimentation.get_movimentation_value.return_value = -50
+    task_mock3.movimentation.value = -50
 
     mock_task_filter.return_value.prefetch_related.return_value = [
       task_mock1,

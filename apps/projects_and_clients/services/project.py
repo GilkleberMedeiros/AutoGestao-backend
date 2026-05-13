@@ -105,13 +105,9 @@ class ProjectService:
   def calculate_profitability(project: Project) -> Project:
     # project.labor_fee + (sum(Task.gains) - sum(Task.costs))
     tasks = Task.objects.filter(project=project).prefetch_related("movimentation")
-    # if task has movimentation, sum its value calling Movimentation.get_movimentation_value()
+    # if task has movimentation, sum its value calling Movimentation.value property
     tasks_value = sum(
-      [
-        task.movimentation.get_movimentation_value()
-        for task in tasks
-        if task.movimentation
-      ]
+      [task.movimentation.value for task in tasks if task.movimentation]
     )
     project.profitability = float(project.labor_fee) + tasks_value
     return project

@@ -53,7 +53,9 @@ class Movimentation(models.Model):
   def __str__(self):
     return self.reason
 
-  def get_movimentation_value(self) -> float:
+  @property
+  def value(self) -> float:
+    """Return the value of the movimentation (considering the movimentation balance)."""
     if self.balance == "+":
       return float(self.amount)
     return -float(self.amount)
