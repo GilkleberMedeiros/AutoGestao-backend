@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.query import QuerySet
 
 import uuid
 
@@ -128,6 +129,96 @@ class Project(models.Model):
 
   def __str__(self):
     return self.name
+
+  def calc_project_total_gain(self, tasks_qs: QuerySet[Task] | None = None) -> float:
+    """
+    Calculate the project total gain (Movimentation values + labor_fee).
+    Doesn't include the costs (negative values).
+
+    Args:
+      :tasks_qs: QuerySet[Task] | None: default None, if it's None,
+      the method will create a new QuerySet and query the database to
+      get all tasks. The given queryset must filter the tasks by
+      the project itself and prefetch the movimentation for
+      performance purposes.
+    """
+    total_gain = float(self.labor_fee)
+
+    if tasks_qs is None:
+      tasks_qs = Task.objects.filter(project=self).prefetch_related("movimentation")
+
+    for task in tasks_qs:
+      if task.movimentation is not None and task.movimentation.value > 0:
+        total_gain += task.movimentation.value
+
+    return total_gain
+
+  def calc_project_total_cost(self, tasks_qs: QuerySet[Task] | None = None) -> float:
+    """
+    Calculate the project total cost.
+    Doesn't include the gains (positive values).
+
+    Args:
+      :tasks_qs: QuerySet[Task] | None: default None, if it's None,
+      the method will create a new QuerySet and query the database to
+      get all tasks. The given queryset must filter the tasks by
+      the project itself and prefetch the movimentation for
+      performance purposes.
+    """
+    total_costs = 0.0
+
+    if tasks_qs is None:
+      tasks_qs = Task.objects.filter(project=self).prefetch_related("movimentation")
+
+    for task in tasks_qs:
+      if task.movimentation is not None and task.movimentation.value < 0:
+        total_costs += task.movimentation.value
+
+    return total_costs
+
+  def calc_project_profitability(self, tasks_qs: QuerySet[Task] | None = None) -> float:
+    """
+    Calculate the project profitability. The project profitability is
+    the sum of the project total gain, Project.labor_fee and the
+    project total cost.
+
+    Args:
+      :tasks_qs: QuerySet[Task] | None: default None, if it's None,
+      the method will create a new QuerySet and query the database to
+      get all tasks. The given queryset must filter the tasks by
+      the project itself and prefetch the movimentation for
+      performance purposes.
+    """
+    profitability = 0.0
+
+    if tasks_qs is None:
+      tasks_qs = Task.objects.filter(project=self).prefetch_related("movimentation")
+
+    # total_gains already includes the labor_fee.
+    total_gains = self.calc_project_total_gain(tasks_qs)
+    total_costs = self.calc_project_total_cost(tasks_qs)
+    # Use '+' instead of '-', otherwise python will sum gains and costs.
+    profitability = total_gains + total_costs
+
+    return profitability
+
+  def calc_project_hour_profitability(self, profitability: float = None) -> float:
+    """
+    Calculate the project hour profitability (profitability per hour).
+
+    Args:
+      :profitability: float | None: default None, if it's None, the
+      method calls calc_project_profitability().
+    """
+    if profitability is None:
+      profitability = self.calc_project_profitability()
+
+    if self.spent_time is None:
+      return 0.0
+
+    # Use // instead of / to avoid float division.
+    hour_profitability = profitability // (self.spent_time.total_seconds() / 3600)
+    return hour_profitability
 
 
 class Task(models.Model):
