@@ -4,10 +4,18 @@ from datetime import date, timedelta
 
 from django.db.models import QuerySet
 
+from apps.core.exceptions import AppError
 from apps.finances.schemas.dashboard import DashboardPeriodFilter
 from apps.finances.models import Movimentation
 from apps.projects_and_clients.models import Project
 from apps.users.models import User
+
+
+class InvalidRankingsCountError(AppError):
+  def __init__(
+    self, message: str = "Invalid rankings count. Must be greater than 0."
+  ) -> None:
+    super().__init__(message)
 
 
 class FastViewsDTO(TypedDict):
@@ -152,6 +160,9 @@ class DashboardService:
     Args:
       rankings_count: The number of projects to return for each rank.
     """
+    if rankings_count <= 0:
+      raise InvalidRankingsCountError()
+
     projects = self._qs
 
     # We'll store projects with their calculated values for sorting

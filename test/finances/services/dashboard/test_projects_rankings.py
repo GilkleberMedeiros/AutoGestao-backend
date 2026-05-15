@@ -6,7 +6,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock, patch
 from datetime import date
 
-from apps.finances.services.dashboard import DashboardService
+from apps.finances.services.dashboard import DashboardService, InvalidRankingsCountError
 from apps.finances.schemas.dashboard import DashboardPeriodFilter
 
 
@@ -118,6 +118,32 @@ class TestDashboardService_ProjectsRankings(TestCase):
     self.assertEqual(len(result["total_cost"]), 3)
     self.assertEqual(len(result["profitability"]), 3)
     self.assertEqual(len(result["hour_profitability"]), 3)
+
+  @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
+  def test_projects_rankings_negative_rankings_count_raise_error(
+    self, mock_projects_qs
+  ):
+    user = MagicMock()
+    period = DashboardPeriodFilter(
+      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
+    )
+
+    service = DashboardService(user, period, includes_open_projects=True)
+
+    with self.assertRaises(InvalidRankingsCountError):
+      service.projects_rankings(rankings_count=-1)
+
+  @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
+  def test_projects_rankings_zero_rankings_count_raise_error(self, mock_projects_qs):
+    user = MagicMock()
+    period = DashboardPeriodFilter(
+      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
+    )
+
+    service = DashboardService(user, period, includes_open_projects=True)
+
+    with self.assertRaises(InvalidRankingsCountError):
+      service.projects_rankings(rankings_count=0)
 
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_projects_rankings_empty_projects(self, mock_projects_qs):
