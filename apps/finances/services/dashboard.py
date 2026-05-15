@@ -1,8 +1,11 @@
 from typing import TypedDict
+from copy import copy
+from datetime import date, timedelta
 
 from django.db.models import QuerySet
 
 from apps.finances.schemas.dashboard import DashboardPeriodFilter
+from apps.finances.models import Movimentation
 from apps.projects_and_clients.models import Project
 from apps.users.models import User
 
@@ -23,6 +26,14 @@ class RankingsDTO(TypedDict):
   total_cost: list[_ProjectRankingDTO]
   profitability: list[_ProjectRankingDTO]
   hour_profitability: list[_ProjectRankingDTO]
+
+
+class IncomeRegisterDTO(TypedDict):
+  date: str
+  profit: float
+
+
+IncomeHistoryDTO = list[IncomeRegisterDTO]
 
 
 class DashboardService:
@@ -167,6 +178,63 @@ class DashboardService:
 
     return composition, total_profitability
 
+  def income_history(self, includes_personal_finances: bool) -> IncomeHistoryDTO:
+    """
+    Returns a history graph data with the income over time.
+    The data is grouped by days.
+
+    Args:
+      includes_personal_finances: Whether to include personal finances data.
+
+    Returns:
+      A list of dicts sorted by date (ascending). Each dict contains the date and the
+      profit made in that date. Each list pos is a day (date) in the
+      period range (inclusive), even some pos have 0.0 profit.
+    """
+    projects = self._qs
+    user = self.user
+    period = self.period
+    profits_in_days = {}
+
+    # Get projects profit in the period range separated by full date (YYYY-MM-DD).
+    for project in projects:
+      # Add labor_fee income if project was closed in the period range.
+      if project.closed_at and period.end_date >= project.closed_at.date():
+        d = project.closed_at.date().isoformat()
+        profits_in_days[d] = profits_in_days.get(d, 0.0) + project.labor_fee
+
+      for task in project.task_set.all():
+        if task.movimentation is None:
+          continue
+        if task.movimentation.movemented_at.date() > period.end_date:
+          continue
+
+        d = task.movimentation.movemented_at.date().isoformat()
+        profits_in_days[d] = profits_in_days.get(d, 0.0) + (task.movimentation.value)
+
+    if includes_personal_finances:
+      # Get personal finances profit in the period range separated by full date (YYYY-MM-DD).
+      movimentations = Movimentation.objects.filter(
+        mov_group__user=user,
+        mov_group__relation="NORELATION",
+        movemented_at__date__range=(period.start_date, period.end_date),
+      )
+
+      for movimentation in movimentations:
+        d = movimentation.movemented_at.date().isoformat()
+        profits_in_days[d] = profits_in_days.get(d, 0.0) + movimentation.value
+
+    # Sort and Format output data.
+    history = []
+    for d in self._date_range(period.start_date, period.end_date):
+      key = d.isoformat()
+      profit = profits_in_days.get(key, 0.0)
+      history.append({"date": key, "profit": profit})
+
+    history = sorted(history, key=lambda x: date.fromisoformat(x["date"]))
+
+    return history
+
   @staticmethod
   def _projects_qs(
     user: User, period: DashboardPeriodFilter, includes_open_projects: bool
@@ -184,3 +252,18 @@ class DashboardService:
       project_qs = project_qs.exclude(status=Project.OPEN_STATUS)
 
     return project_qs
+
+  @staticmethod
+  def _date_range(start_date: date, end_date: date):
+    """
+    Generator that yields dates from start_date to end_date
+    (inclusive-inclusive).
+    """
+
+    # Copy date objects to avoid modifying the originals.
+    sdate = copy(start_date)
+    edate = copy(end_date)
+
+    while sdate <= edate:
+      yield sdate
+      sdate += timedelta(days=1)

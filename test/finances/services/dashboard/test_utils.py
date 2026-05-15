@@ -32,6 +32,28 @@ class TestDashboardService_Constructor(TestCase):
     mock_projects_qs.assert_called_once_with(user, period, True)
 
 
+class TestDashboardService_DateRange(TestCase):
+  def test_date_range_multiple_days(self):
+    start = date(2026, 1, 1)
+    end = date(2026, 1, 3)
+    expected = [date(2026, 1, 1), date(2026, 1, 2), date(2026, 1, 3)]
+    result = list(DashboardService._date_range(start, end))
+    self.assertEqual(result, expected)
+
+  def test_date_range_single_day(self):
+    start = date(2026, 1, 1)
+    end = date(2026, 1, 1)
+    expected = [date(2026, 1, 1)]
+    result = list(DashboardService._date_range(start, end))
+    self.assertEqual(result, expected)
+
+  def test_date_range_end_before_start(self):
+    start = date(2026, 1, 3)
+    end = date(2026, 1, 1)
+    result = list(DashboardService._date_range(start, end))
+    self.assertEqual(result, [])
+
+
 class TestDashboardService_ProjectsQS(TestCase):
   @patch("apps.finances.services.dashboard.Project.objects.filter")
   def test_projects_qs_filtering_and_optimization(self, mock_filter):
