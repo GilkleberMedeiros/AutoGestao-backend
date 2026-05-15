@@ -132,6 +132,56 @@ class DashboardService:
       hour_profitability=total_hour_profitability_rank,
     )
 
+  @classmethod
+  def income_projects_composition(
+    cls,
+    user: User,
+    period: DashboardPeriodFilter,
+    includes_open_projects: bool,
+    projects_qs: QuerySet[Project] | None = None,
+  ) -> tuple[list[dict], float]:
+    """
+    Calculate the composition of total profit for
+    each project excluding projects with zero or less profit.
+    Returns a tuple of (composition, total_profitability).
+    """
+
+    projects = projects_qs
+
+    if projects_qs is None:
+      projects = cls._projects_qs(user, period, includes_open_projects)
+
+    total_profitability = 0.0
+    project_data = []
+
+    # Calc total profit
+    for project in projects:
+      tasks = project.task_set.all()
+      profit = project.calc_project_profitability(tasks)
+      # Exclude projects with zero or less profit.
+      if profit > 0:
+        project_data.append(
+          {"name": project.name, "profit": profit, "project": project}
+        )
+        total_profitability += profit
+
+    # Returns empty list and zero if total_profitability is zero.
+    if total_profitability <= 0:
+      return [], 0.0
+
+    # Calculate composition of total profit for each project.
+    composition: list[dict] = []
+    for item in project_data:
+      composition.append(
+        {
+          "project": item["project"],
+          "profit": item["profit"],
+          "percentage": round((item["profit"] / total_profitability) * 100, 2),
+        }
+      )
+
+    return composition, total_profitability
+
   @staticmethod
   def _projects_qs(
     user: User, period: DashboardPeriodFilter, includes_open_projects: bool
