@@ -45,6 +45,20 @@ class IncomeRegisterDTO(TypedDict):
 IncomeHistoryDTO = list[IncomeRegisterDTO]
 
 
+class DashboardDTO(TypedDict):
+  projects_fast_views: FastViewsDTO | None
+  projects_rankings: RankingsDTO | None
+  income_projects_composition: IncomeProjectsCompositionDTO | None
+  income_history: IncomeHistoryDTO | None
+
+
+class DashboardMetricsParam(TypedDict):
+  projects_fast_views: bool
+  projects_rankings: bool
+  income_projects_composition: bool
+  income_history: bool
+
+
 class DashboardService:
   def __init__(
     self, user: User, period: DashboardPeriodFilter, includes_open_projects: bool
@@ -61,6 +75,51 @@ class DashboardService:
     self.period = period
     self.includes_open_projects = includes_open_projects
     self._qs = self._projects_qs(user, period, includes_open_projects)
+
+  def dashboard(
+    self,
+    includes_personal_finances: bool,
+    rankings_count: int = 5,
+    metrics: DashboardMetricsParam | None = None,
+  ):
+    """
+    Return the entire dashboard with the dashboard metrics.
+
+    Args:
+      includes_personal_finances: Whether to include personal
+      finances in the dashboard income history metric.
+      rankings_count: The number of projects to include in the rankings metric.
+      metrics: The metrics to include in the dashboard.
+    """
+
+    if metrics is None:
+      return DashboardDTO(
+        projects_fast_views=self.fast_views(),
+        projects_rankings=self.projects_rankings(rankings_count),
+        income_projects_composition=self.income_projects_composition(),
+        income_history=self.income_history(includes_personal_finances),
+      )
+
+    dashboard = DashboardDTO(
+      projects_fast_views=None,
+      projects_rankings=None,
+      income_projects_composition=None,
+      income_history=None,
+    )
+
+    if metrics.get("projects_fast_views", False):
+      dashboard["projects_fast_views"] = self.fast_views()
+
+    if metrics.get("projects_rankings", False):
+      dashboard["projects_rankings"] = self.projects_rankings(rankings_count)
+
+    if metrics.get("income_projects_composition", False):
+      dashboard["income_projects_composition"] = self.income_projects_composition()
+
+    if metrics.get("income_history", False):
+      dashboard["income_history"] = self.income_history(includes_personal_finances)
+
+    return dashboard
 
   def fast_views(self) -> FastViewsDTO:
     """
