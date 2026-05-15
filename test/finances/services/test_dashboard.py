@@ -16,9 +16,9 @@ class TestDashboardService_FastViews(TestCase):
 
     mock_projects_qs.return_value = []
 
-    DashboardService.fast_views(user, period)
+    DashboardService.fast_views(user, period, includes_open_projects=True)
 
-    mock_projects_qs.assert_called_once_with(user, period)
+    mock_projects_qs.assert_called_once_with(user, period, True)
 
   def test_fast_views_uses_provided_projects_qs(self):
     user = MagicMock()
@@ -31,7 +31,7 @@ class TestDashboardService_FastViews(TestCase):
     with patch(
       "apps.finances.services.dashboard.DashboardService._projects_qs"
     ) as mock_projects_qs:
-      DashboardService.fast_views(user, period, projects_qs=mock_qs)
+      DashboardService.fast_views(user, period, True, projects_qs=mock_qs)
       mock_projects_qs.assert_not_called()
 
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
@@ -59,7 +59,7 @@ class TestDashboardService_FastViews(TestCase):
 
     mock_projects_qs.return_value = [project1, project2]
 
-    result = DashboardService.fast_views(user, period)
+    result = DashboardService.fast_views(user, period, includes_open_projects=True)
 
     # Verify totals
     self.assertEqual(result["total_gains"], 350.0)
@@ -83,7 +83,7 @@ class TestDashboardService_FastViews(TestCase):
     )
     mock_projects_qs.return_value = []
 
-    result = DashboardService.fast_views(user, period)
+    result = DashboardService.fast_views(user, period, includes_open_projects=True)
 
     self.assertEqual(result["total_gains"], 0.0)
     self.assertEqual(result["total_costs"], 0.0)
@@ -104,7 +104,7 @@ class TestDashboardService_FastViews(TestCase):
 
     mock_projects_qs.return_value = [project]
 
-    result = DashboardService.fast_views(user, period)
+    result = DashboardService.fast_views(user, period, includes_open_projects=True)
 
     self.assertEqual(result["profitability"], -50.0)
     self.assertEqual(result["total_gains"], 50.0)
@@ -125,7 +125,7 @@ class TestDashboardService_FastViews(TestCase):
 
     mock_projects_qs.return_value = [project]
 
-    result = DashboardService.fast_views(user, period)
+    result = DashboardService.fast_views(user, period, includes_open_projects=True)
 
     self.assertEqual(result["total_gains"], 0.0)
     self.assertEqual(result["total_costs"], 0.0)
@@ -171,9 +171,9 @@ class TestDashboardService_ProjectsRankings(TestCase):
 
     mock_projects_qs.return_value = []
 
-    DashboardService.projects_rankings(user, period)
+    DashboardService.projects_rankings(user, period, includes_open_projects=True)
 
-    mock_projects_qs.assert_called_once_with(user, period)
+    mock_projects_qs.assert_called_once_with(user, period, True)
 
   def test_projects_rankings_uses_provided_projects_qs(self):
     user = MagicMock()
@@ -185,7 +185,7 @@ class TestDashboardService_ProjectsRankings(TestCase):
     with patch(
       "apps.finances.services.dashboard.DashboardService._projects_qs"
     ) as mock_projects_qs:
-      DashboardService.projects_rankings(user, period, projects_qs=mock_qs)
+      DashboardService.projects_rankings(user, period, True, projects_qs=mock_qs)
       mock_projects_qs.assert_not_called()
 
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
@@ -200,7 +200,9 @@ class TestDashboardService_ProjectsRankings(TestCase):
     mock_projects_qs.return_value = [p1, p2, p3]
 
     # rankings_count = 2 less comparisons
-    result = DashboardService.projects_rankings(user, period, rankings_count=2)
+    result = DashboardService.projects_rankings(
+      user, period, includes_open_projects=True, rankings_count=2
+    )
 
     # Total Gain Rank: p1 (1000), p3 (600)
     self.assertEqual(result["total_gain"][0]["project"], p1)
@@ -240,7 +242,9 @@ class TestDashboardService_ProjectsRankings(TestCase):
     mock_projects_qs.return_value = [p1, p2, p3]
 
     # Only 1 project requested for each rank
-    result = DashboardService.projects_rankings(user, period, rankings_count=1)
+    result = DashboardService.projects_rankings(
+      user, period, includes_open_projects=True, rankings_count=1
+    )
 
     # Only 1 project for each rank
     self.assertEqual(len(result["total_gain"]), 1)
@@ -261,7 +265,9 @@ class TestDashboardService_ProjectsRankings(TestCase):
     mock_projects_qs.return_value = [p1, p2, p3]
 
     # Asking to return 5 projects per rank, but only 3 are available
-    result = DashboardService.projects_rankings(user, period, rankings_count=5)
+    result = DashboardService.projects_rankings(
+      user, period, includes_open_projects=True, rankings_count=5
+    )
 
     # Only 3 projects for each rank
     self.assertEqual(len(result["total_gain"]), 3)
@@ -277,7 +283,7 @@ class TestDashboardService_ProjectsRankings(TestCase):
     )
     mock_projects_qs.return_value = []
 
-    result = DashboardService.projects_rankings(user, period)
+    result = DashboardService.projects_rankings(user, period, includes_open_projects=True)
 
     self.assertEqual(result["total_gain"], [])
     self.assertEqual(result["total_cost"], [])
@@ -297,7 +303,7 @@ class TestDashboardService_ProjectsQS(TestCase):
     mock_filter.return_value = mock_qs
     mock_qs.prefetch_related.return_value = mock_qs
 
-    result = DashboardService._projects_qs(user, period)
+    result = DashboardService._projects_qs(user, period, includes_open_projects=True)
 
     # Verify filtering
     mock_filter.assert_called_once_with(
@@ -308,3 +314,22 @@ class TestDashboardService_ProjectsQS(TestCase):
     mock_qs.prefetch_related.assert_called_once_with("task_set__movimentation")
 
     self.assertEqual(result, mock_qs)
+
+  @patch("apps.finances.services.dashboard.Project.objects.filter")
+  def test_projects_qs_excludes_open_projects_when_requested(self, mock_filter):
+    user = MagicMock()
+    period = DashboardPeriodFilter(
+      start_date=date(2026, 5, 1), end_date=date(2026, 5, 31)
+    )
+
+    mock_qs = MagicMock()
+    mock_filter.return_value = mock_qs
+    mock_qs.prefetch_related.return_value = mock_qs
+    mock_qs.exclude.return_value = mock_qs
+
+    DashboardService._projects_qs(user, period, includes_open_projects=False)
+
+    # Verify that exclude was called with OPEN_STATUS
+    from apps.projects_and_clients.models import Project
+
+    mock_qs.exclude.assert_called_once_with(status=Project.OPEN_STATUS)

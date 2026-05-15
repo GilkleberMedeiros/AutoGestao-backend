@@ -30,12 +30,13 @@ class DashboardService:
   def fast_views(
     user: User,
     period: DashboardPeriodFilter,
+    includes_open_projects: bool,
     projects_qs: QuerySet[Project] | None = None,
   ) -> FastViewsDTO:
     projects = projects_qs
 
     if projects_qs is None:
-      projects = DashboardService._projects_qs(user, period)
+      projects = DashboardService._projects_qs(user, period, includes_open_projects)
 
     total_gains = 0.0
     total_costs = 0.0
@@ -57,6 +58,7 @@ class DashboardService:
   def projects_rankings(
     user: User,
     period: DashboardPeriodFilter,
+    includes_open_projects: bool,
     rankings_count: int = 5,
     projects_qs: QuerySet[Project] | None = None,
   ) -> RankingsDTO:
@@ -74,7 +76,7 @@ class DashboardService:
     projects = projects_qs
 
     if projects_qs is None:
-      projects = DashboardService._projects_qs(user, period)
+      projects = DashboardService._projects_qs(user, period, includes_open_projects)
 
     # We'll store projects with their calculated values for sorting
     project_data = []
@@ -131,12 +133,19 @@ class DashboardService:
     )
 
   @staticmethod
-  def _projects_qs(user: User, period: DashboardPeriodFilter) -> QuerySet[Project]:
+  def _projects_qs(
+    user: User, period: DashboardPeriodFilter, includes_open_projects: bool
+  ) -> QuerySet[Project]:
     """
-    Return a queryset of projects filtered by user and period range.
+    Return a queryset of projects filtered by user, period range and
+    if projects that are still open should be included.
     The returned queryset is optimized for most of DashboardService methods.
     """
-
-    return Project.objects.filter(
+    project_qs = Project.objects.filter(
       user=user, created_at__date__range=(period.start_date, period.end_date)
     ).prefetch_related("task_set__movimentation")
+
+    if not includes_open_projects:
+      project_qs = project_qs.exclude(status=Project.OPEN_STATUS)
+
+    return project_qs
