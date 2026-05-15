@@ -28,6 +28,15 @@ class RankingsDTO(TypedDict):
   hour_profitability: list[_ProjectRankingDTO]
 
 
+class ProjectProfitCompositionDTO(TypedDict):
+  project: Project
+  profit: float
+  percentage: float
+
+
+IncomeProjectsCompositionDTO = tuple[list[ProjectProfitCompositionDTO], float]
+
+
 class IncomeRegisterDTO(TypedDict):
   date: str
   profit: float
@@ -140,7 +149,7 @@ class DashboardService:
       hour_profitability=total_hour_profitability_rank,
     )
 
-  def income_projects_composition(self) -> tuple[list[dict], float]:
+  def income_projects_composition(self) -> IncomeProjectsCompositionDTO:
     """
     Calculate the composition of total profit for
     each project excluding projects with zero or less profit.
