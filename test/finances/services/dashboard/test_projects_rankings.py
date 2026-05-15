@@ -39,34 +39,6 @@ class TestDashboardService_ProjectsRankings(TestCase):
     return [p1, p2, p3]
 
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  def test_projects_rankings_calls_projects_qs_when_none_provided(
-    self, mock_projects_qs
-  ):
-    user = MagicMock()
-    period = DashboardPeriodFilter(
-      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
-    )
-
-    mock_projects_qs.return_value = []
-
-    DashboardService.projects_rankings(user, period, includes_open_projects=True)
-
-    mock_projects_qs.assert_called_once_with(user, period, True)
-
-  def test_projects_rankings_uses_provided_projects_qs(self):
-    user = MagicMock()
-    period = DashboardPeriodFilter(
-      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
-    )
-    mock_qs = MagicMock()
-
-    with patch(
-      "apps.finances.services.dashboard.DashboardService._projects_qs"
-    ) as mock_projects_qs:
-      DashboardService.projects_rankings(user, period, True, projects_qs=mock_qs)
-      mock_projects_qs.assert_not_called()
-
-  @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_projects_rankings_calculation_and_sorting(self, mock_projects_qs):
     user = MagicMock()
     period = DashboardPeriodFilter(
@@ -77,10 +49,8 @@ class TestDashboardService_ProjectsRankings(TestCase):
     p1, p2, p3 = self._make_projects_mocks()
     mock_projects_qs.return_value = [p1, p2, p3]
 
-    # rankings_count = 2 less comparisons
-    result = DashboardService.projects_rankings(
-      user, period, includes_open_projects=True, rankings_count=2
-    )
+    service = DashboardService(user, period, includes_open_projects=True)
+    result = service.projects_rankings(rankings_count=2)
 
     # Total Gain Rank: p1 (1000), p3 (600)
     self.assertEqual(result["total_gain"][0]["project"], p1)
@@ -119,10 +89,8 @@ class TestDashboardService_ProjectsRankings(TestCase):
     p1, p2, p3 = self._make_projects_mocks()
     mock_projects_qs.return_value = [p1, p2, p3]
 
-    # Only 1 project requested for each rank
-    result = DashboardService.projects_rankings(
-      user, period, includes_open_projects=True, rankings_count=1
-    )
+    service = DashboardService(user, period, includes_open_projects=True)
+    result = service.projects_rankings(rankings_count=1)
 
     # Only 1 project for each rank
     self.assertEqual(len(result["total_gain"]), 1)
@@ -142,10 +110,8 @@ class TestDashboardService_ProjectsRankings(TestCase):
     p1, p2, p3 = self._make_projects_mocks()
     mock_projects_qs.return_value = [p1, p2, p3]
 
-    # Asking to return 5 projects per rank, but only 3 are available
-    result = DashboardService.projects_rankings(
-      user, period, includes_open_projects=True, rankings_count=5
-    )
+    service = DashboardService(user, period, includes_open_projects=True)
+    result = service.projects_rankings(rankings_count=5)
 
     # Only 3 projects for each rank
     self.assertEqual(len(result["total_gain"]), 3)
@@ -161,9 +127,8 @@ class TestDashboardService_ProjectsRankings(TestCase):
     )
     mock_projects_qs.return_value = []
 
-    result = DashboardService.projects_rankings(
-      user, period, includes_open_projects=True
-    )
+    service = DashboardService(user, period, includes_open_projects=True)
+    result = service.projects_rankings()
 
     self.assertEqual(result["total_gain"], [])
     self.assertEqual(result["total_cost"], [])

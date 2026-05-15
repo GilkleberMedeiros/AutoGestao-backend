@@ -26,17 +26,27 @@ class RankingsDTO(TypedDict):
 
 
 class DashboardService:
-  @staticmethod
-  def fast_views(
-    user: User,
-    period: DashboardPeriodFilter,
-    includes_open_projects: bool,
-    projects_qs: QuerySet[Project] | None = None,
-  ) -> FastViewsDTO:
-    projects = projects_qs
+  def __init__(
+    self, user: User, period: DashboardPeriodFilter, includes_open_projects: bool
+  ) -> None:
+    """
+    Initialize the DashboardService.
 
-    if projects_qs is None:
-      projects = DashboardService._projects_qs(user, period, includes_open_projects)
+    Args:
+      user: The user to get the projects for.
+      period: The period to get the projects for.
+      includes_open_projects: Whether to include projects that are still open.
+    """
+    self.user = user
+    self.period = period
+    self.includes_open_projects = includes_open_projects
+    self._qs = self._projects_qs(user, period, includes_open_projects)
+
+  def fast_views(self) -> FastViewsDTO:
+    """
+    Calculate the fast visualizations metrics for the dashboard.
+    """
+    projects = self._qs
 
     total_gains = 0.0
     total_costs = 0.0
@@ -54,29 +64,16 @@ class DashboardService:
       profitability=total_profitability,
     )
 
-  @staticmethod
-  def projects_rankings(
-    user: User,
-    period: DashboardPeriodFilter,
-    includes_open_projects: bool,
-    rankings_count: int = 5,
-    projects_qs: QuerySet[Project] | None = None,
-  ) -> RankingsDTO:
+  def projects_rankings(self, rankings_count: int = 5) -> RankingsDTO:
     """
-    Returns project rankins for given period, where each rank is
+    Returns project rankings metrics, where each rank is
     a list of a dict with project and value keys, sorted by value in
     value key.
 
     Args:
-      user: The user to get the projects for.
-      period: The period to get the projects for.
       rankings_count: The number of projects to return for each rank.
-      projects_qs: The queryset of projects to get the projects for.
     """
-    projects = projects_qs
-
-    if projects_qs is None:
-      projects = DashboardService._projects_qs(user, period, includes_open_projects)
+    projects = self._qs
 
     # We'll store projects with their calculated values for sorting
     project_data = []
@@ -132,25 +129,13 @@ class DashboardService:
       hour_profitability=total_hour_profitability_rank,
     )
 
-  @classmethod
-  def income_projects_composition(
-    cls,
-    user: User,
-    period: DashboardPeriodFilter,
-    includes_open_projects: bool,
-    projects_qs: QuerySet[Project] | None = None,
-  ) -> tuple[list[dict], float]:
+  def income_projects_composition(self) -> tuple[list[dict], float]:
     """
     Calculate the composition of total profit for
     each project excluding projects with zero or less profit.
     Returns a tuple of (composition, total_profitability).
     """
-
-    projects = projects_qs
-
-    if projects_qs is None:
-      projects = cls._projects_qs(user, period, includes_open_projects)
-
+    projects = self._qs
     total_profitability = 0.0
     project_data = []
 

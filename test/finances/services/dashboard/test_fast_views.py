@@ -12,33 +12,6 @@ from apps.finances.schemas.dashboard import DashboardPeriodFilter
 
 class TestDashboardService_FastViews(TestCase):
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  def test_fast_views_calls_projects_qs_when_none_provided(self, mock_projects_qs):
-    user = MagicMock()
-    period = DashboardPeriodFilter(
-      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
-    )
-
-    mock_projects_qs.return_value = []
-
-    DashboardService.fast_views(user, period, includes_open_projects=True)
-
-    mock_projects_qs.assert_called_once_with(user, period, True)
-
-  def test_fast_views_uses_provided_projects_qs(self):
-    user = MagicMock()
-    period = DashboardPeriodFilter(
-      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
-    )
-    mock_qs = MagicMock()
-
-    # If we provide projects_qs, _projects_qs should NOT be called.
-    with patch(
-      "apps.finances.services.dashboard.DashboardService._projects_qs"
-    ) as mock_projects_qs:
-      DashboardService.fast_views(user, period, True, projects_qs=mock_qs)
-      mock_projects_qs.assert_not_called()
-
-  @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_fast_views_calculation_logic(self, mock_projects_qs):
     user = MagicMock()
     period = DashboardPeriodFilter(
@@ -63,7 +36,8 @@ class TestDashboardService_FastViews(TestCase):
 
     mock_projects_qs.return_value = [project1, project2]
 
-    result = DashboardService.fast_views(user, period, includes_open_projects=True)
+    service = DashboardService(user, period, includes_open_projects=True)
+    result = service.fast_views()
 
     # Verify totals
     self.assertEqual(result["total_gains"], 350.0)
@@ -87,7 +61,8 @@ class TestDashboardService_FastViews(TestCase):
     )
     mock_projects_qs.return_value = []
 
-    result = DashboardService.fast_views(user, period, includes_open_projects=True)
+    service = DashboardService(user, period, includes_open_projects=True)
+    result = service.fast_views()
 
     self.assertEqual(result["total_gains"], 0.0)
     self.assertEqual(result["total_costs"], 0.0)
@@ -108,7 +83,8 @@ class TestDashboardService_FastViews(TestCase):
 
     mock_projects_qs.return_value = [project]
 
-    result = DashboardService.fast_views(user, period, includes_open_projects=True)
+    service = DashboardService(user, period, includes_open_projects=True)
+    result = service.fast_views()
 
     self.assertEqual(result["profitability"], -50.0)
     self.assertEqual(result["total_gains"], 50.0)
@@ -129,7 +105,8 @@ class TestDashboardService_FastViews(TestCase):
 
     mock_projects_qs.return_value = [project]
 
-    result = DashboardService.fast_views(user, period, includes_open_projects=True)
+    service = DashboardService(user, period, includes_open_projects=True)
+    result = service.fast_views()
 
     self.assertEqual(result["total_gains"], 0.0)
     self.assertEqual(result["total_costs"], 0.0)

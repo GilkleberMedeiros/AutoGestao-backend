@@ -12,38 +12,6 @@ from apps.finances.schemas.dashboard import DashboardPeriodFilter
 
 class TestDashboardService_IncomeProjectsComposition(TestCase):
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  def test_income_projects_composition_calls_projects_qs_when_none_provided(
-    self, mock_projects_qs
-  ):
-    user = MagicMock()
-    period = DashboardPeriodFilter(
-      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
-    )
-
-    mock_projects_qs.return_value = []
-
-    DashboardService.income_projects_composition(
-      user, period, includes_open_projects=True
-    )
-
-    mock_projects_qs.assert_called_once_with(user, period, True)
-
-  def test_income_projects_composition_uses_provided_projects_qs(self):
-    user = MagicMock()
-    period = DashboardPeriodFilter(
-      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
-    )
-    mock_qs = MagicMock()
-
-    with patch(
-      "apps.finances.services.dashboard.DashboardService._projects_qs"
-    ) as mock_projects_qs:
-      DashboardService.income_projects_composition(
-        user, period, True, projects_qs=mock_qs
-      )
-      mock_projects_qs.assert_not_called()
-
-  @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_income_projects_composition_calculation_logic(self, mock_projects_qs):
     user = MagicMock()
     period = DashboardPeriodFilter(
@@ -62,9 +30,8 @@ class TestDashboardService_IncomeProjectsComposition(TestCase):
 
     mock_projects_qs.return_value = [p1, p2]
 
-    composition, total_profit = DashboardService.income_projects_composition(
-      user, period, includes_open_projects=True
-    )
+    service = DashboardService(user, period, includes_open_projects=True)
+    composition, total_profit = service.income_projects_composition()
 
     # Total profit = 60 + 140 = 200
     self.assertEqual(total_profit, 200.0)
@@ -106,9 +73,8 @@ class TestDashboardService_IncomeProjectsComposition(TestCase):
 
     mock_projects_qs.return_value = [p1, p2, p3]
 
-    composition, total_profit = DashboardService.income_projects_composition(
-      user, period, includes_open_projects=True
-    )
+    service = DashboardService(user, period, includes_open_projects=True)
+    composition, total_profit = service.income_projects_composition()
 
     self.assertEqual(total_profit, 100.0)
     self.assertEqual(len(composition), 1)
@@ -123,9 +89,8 @@ class TestDashboardService_IncomeProjectsComposition(TestCase):
     )
     mock_projects_qs.return_value = []
 
-    composition, total_profit = DashboardService.income_projects_composition(
-      user, period, includes_open_projects=True
-    )
+    service = DashboardService(user, period, includes_open_projects=True)
+    composition, total_profit = service.income_projects_composition()
 
     self.assertEqual(composition, [])
     self.assertEqual(total_profit, 0.0)
@@ -149,9 +114,8 @@ class TestDashboardService_IncomeProjectsComposition(TestCase):
 
     mock_projects_qs.return_value = [p1, p2]
 
-    composition, total_profit = DashboardService.income_projects_composition(
-      user, period, includes_open_projects=True
-    )
+    service = DashboardService(user, period, includes_open_projects=True)
+    composition, total_profit = service.income_projects_composition()
 
     self.assertEqual(composition, [])
     self.assertEqual(total_profit, 0.0)
