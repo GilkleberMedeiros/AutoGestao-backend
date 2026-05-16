@@ -11,43 +11,48 @@ from apps.finances.schemas.dashboard import DashboardPeriodFilter
 
 
 class TestDashboardService_ProjectsRankings(TestCase):
-  def _make_projects_mocks(self):
-    # Project 1: High gain, High cost, High profit, High hour profit
+  def _make_metrics_mocks(self):
     p1 = MagicMock()
-    p1.calc_project_total_gain.return_value = 1000.0
-    p1.calc_project_total_cost.return_value = -500.0
-    p1.calc_project_profitability.return_value = 500.0
-    p1.calc_project_hour_profitability.return_value = 100.0
-    p1.task_set.all.return_value = []
-
-    # Project 2: Low gain, Low cost, Low profit, Low hour profit
     p2 = MagicMock()
-    p2.calc_project_total_gain.return_value = 200.0
-    p2.calc_project_total_cost.return_value = -50.0
-    p2.calc_project_profitability.return_value = 150.0
-    p2.calc_project_hour_profitability.return_value = 30.0
-    p2.task_set.all.return_value = []
-
-    # Project 3: Medium gain, Very high cost (most negative), Medium profit, Medium hour profit
     p3 = MagicMock()
-    p3.calc_project_total_gain.return_value = 600.0
-    p3.calc_project_total_cost.return_value = -800.0
-    p3.calc_project_profitability.return_value = -200.0
-    p3.calc_project_hour_profitability.return_value = -40.0
-    p3.task_set.all.return_value = []
 
-    return [p1, p2, p3]
+    return [
+      {
+        "project": p1,
+        "gain": 1000.0,
+        "cost": -500.0,
+        "profit": 500.0,
+        "hour_profit": 100.0,
+      },
+      {
+        "project": p2,
+        "gain": 200.0,
+        "cost": -50.0,
+        "profit": 150.0,
+        "hour_profit": 30.0,
+      },
+      {
+        "project": p3,
+        "gain": 600.0,
+        "cost": -800.0,
+        "profit": -200.0,
+        "hour_profit": -40.0,
+      },
+    ]
 
+  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  def test_projects_rankings_calculation_and_sorting(self, mock_projects_qs):
+  def test_projects_rankings_calculation_and_sorting(
+    self, mock_projects_qs, mock_calc_metrics
+  ):
     user = MagicMock()
     period = DashboardPeriodFilter(
       start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
     )
 
-    # Testing with 3 projects
-    p1, p2, p3 = self._make_projects_mocks()
-    mock_projects_qs.return_value = [p1, p2, p3]
+    metrics = self._make_metrics_mocks()
+    mock_calc_metrics.return_value = metrics
+    p1, p2, p3 = metrics[0]["project"], metrics[1]["project"], metrics[2]["project"]
 
     service = DashboardService(user, period, includes_open_projects=True)
     result = service.projects_rankings(rankings_count=2)
@@ -77,17 +82,16 @@ class TestDashboardService_ProjectsRankings(TestCase):
     self.assertEqual(result["hour_profitability"][1]["project"], p2)
     self.assertEqual(result["hour_profitability"][1]["value"], 30.0)
 
+  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_projects_rankings_slicing_less_projects_than_available(
-    self, mock_projects_qs
+    self, mock_projects_qs, mock_calc_metrics
   ):
     user = MagicMock()
     period = DashboardPeriodFilter(
       start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
     )
-    # Three projects available to rank
-    p1, p2, p3 = self._make_projects_mocks()
-    mock_projects_qs.return_value = [p1, p2, p3]
+    mock_calc_metrics.return_value = self._make_metrics_mocks()
 
     service = DashboardService(user, period, includes_open_projects=True)
     result = service.projects_rankings(rankings_count=1)
@@ -98,17 +102,16 @@ class TestDashboardService_ProjectsRankings(TestCase):
     self.assertEqual(len(result["profitability"]), 1)
     self.assertEqual(len(result["hour_profitability"]), 1)
 
+  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_projects_rankings_slicing_more_projects_than_available(
-    self, mock_projects_qs
+    self, mock_projects_qs, mock_calc_metrics
   ):
     user = MagicMock()
     period = DashboardPeriodFilter(
       start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
     )
-    # Three projects available to rank
-    p1, p2, p3 = self._make_projects_mocks()
-    mock_projects_qs.return_value = [p1, p2, p3]
+    mock_calc_metrics.return_value = self._make_metrics_mocks()
 
     service = DashboardService(user, period, includes_open_projects=True)
     result = service.projects_rankings(rankings_count=5)
@@ -145,13 +148,14 @@ class TestDashboardService_ProjectsRankings(TestCase):
     with self.assertRaises(InvalidRankingsCountError):
       service.projects_rankings(rankings_count=0)
 
+  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  def test_projects_rankings_empty_projects(self, mock_projects_qs):
+  def test_projects_rankings_empty_projects(self, mock_projects_qs, mock_calc_metrics):
     user = MagicMock()
     period = DashboardPeriodFilter(
       start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
     )
-    mock_projects_qs.return_value = []
+    mock_calc_metrics.return_value = []
 
     service = DashboardService(user, period, includes_open_projects=True)
     result = service.projects_rankings()

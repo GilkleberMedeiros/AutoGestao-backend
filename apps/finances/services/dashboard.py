@@ -83,6 +83,7 @@ class DashboardService:
     self.period = period
     self.includes_open_projects = includes_open_projects
     self._qs = self._projects_qs(user, period, includes_open_projects)
+    self._projects_data = None
 
   def dashboard(
     self,
@@ -133,17 +134,17 @@ class DashboardService:
     """
     Calculate the fast visualizations metrics for the dashboard.
     """
-    projects = self._qs
+    # Get projects and calc base metrics for each project.
+    projects = self._calc_projects_base_metrics()
 
     total_gains = 0.0
     total_costs = 0.0
     total_profitability = 0.0
 
     for project in projects:
-      tasks = project.task_set.all()
-      total_gains += project.calc_project_total_gain(tasks)
-      total_costs += project.calc_project_total_cost(tasks)
-      total_profitability += project.calc_project_profitability(tasks)
+      total_gains += project["gain"]
+      total_costs += project["cost"]
+      total_profitability += project["profit"]
 
     return FastViewsDTO(
       total_gains=total_gains,
@@ -163,26 +164,8 @@ class DashboardService:
     if rankings_count <= 0:
       raise InvalidRankingsCountError()
 
-    projects = self._qs
-
-    # We'll store projects with their calculated values for sorting
-    project_data = []
-    for project in projects:
-      tasks = project.task_set.all()
-      gain = project.calc_project_total_gain(tasks)
-      cost = project.calc_project_total_cost(tasks)
-      profit = project.calc_project_profitability(tasks)
-      hour_profit = project.calc_project_hour_profitability(profit)
-
-      project_data.append(
-        {
-          "project": project,
-          "gain": gain,
-          "cost": cost,
-          "profit": profit,
-          "hour_profit": hour_profit,
-        }
-      )
+    # Calc base metrics for each project.
+    project_data = self._calc_projects_base_metrics()
 
     # Sort and pick top N (rankings_count=5) for each category
     # Note: cost is usually negative, so "bigger cost" means most negative (lowest value)
@@ -225,19 +208,18 @@ class DashboardService:
     each project excluding projects with zero or less profit.
     Returns a tuple of (composition, total_profitability).
     """
-    projects = self._qs
+    # Get and calc projects base metrics (including profit).
+    projects = self._calc_projects_base_metrics()
     total_profitability = 0.0
-    project_data = []
+    projects_data = []
 
     # Calc total profit
     for project in projects:
-      tasks = project.task_set.all()
-      profit = project.calc_project_profitability(tasks)
+      profit = project["profit"]
+      project = project["project"]
       # Exclude projects with zero or less profit.
       if profit > 0:
-        project_data.append(
-          {"name": project.name, "profit": profit, "project": project}
-        )
+        projects_data.append({"profit": profit, "project": project})
         total_profitability += profit
 
     # Returns empty list and zero if total_profitability is zero.
@@ -246,7 +228,7 @@ class DashboardService:
 
     # Calculate composition of total profit for each project.
     composition: list[dict] = []
-    for item in project_data:
+    for item in projects_data:
       composition.append(
         {
           "project": item["project"],
@@ -331,6 +313,41 @@ class DashboardService:
       project_qs = project_qs.exclude(status=Project.OPEN_STATUS)
 
     return project_qs
+
+  def _calc_projects_base_metrics(self):
+    """
+    Calculate base metrics for all projects and cache them in the
+    _projects_data attribute. Using this method avoids the need to
+    recalculate metrics for the same projects multiple times.
+
+    Returns:
+      list[dict[str, Project | float]]: list of dicts where each dict
+      contains the following keys: "project", "gain", "cost", "profit",
+      "hour_profit" (original project and its metrics).
+    """
+
+    if self._projects_data:
+      return self._projects_data
+
+    self._projects_data = []
+    for project in self._qs:
+      tasks = project.task_set.all()
+      gain = project.calc_project_total_gain(tasks)
+      cost = project.calc_project_total_cost(tasks)
+      profit = project.calc_project_profitability(tasks)
+      hour_profit = project.calc_project_hour_profitability(profit)
+
+      self._projects_data.append(
+        {
+          "project": project,
+          "gain": gain,
+          "cost": cost,
+          "profit": profit,
+          "hour_profit": hour_profit,
+        }
+      )
+
+    return self._projects_data
 
   @staticmethod
   def _date_range(start_date: date, end_date: date):

@@ -11,24 +11,35 @@ from apps.finances.schemas.dashboard import DashboardPeriodFilter
 
 
 class TestDashboardService_IncomeProjectsComposition(TestCase):
+  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  def test_income_projects_composition_calculation_logic(self, mock_projects_qs):
+  def test_income_projects_composition_calculation_logic(
+    self, mock_projects_qs, mock_calc_metrics
+  ):
     user = MagicMock()
     period = DashboardPeriodFilter(
       start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
     )
 
-    # Project 1: profit = 60
     p1 = MagicMock()
-    p1.calc_project_profitability.return_value = 60.0
-    p1.task_set.all.return_value = []
-
-    # Project 2: profit = 140
     p2 = MagicMock()
-    p2.calc_project_profitability.return_value = 140.0
-    p2.task_set.all.return_value = []
 
-    mock_projects_qs.return_value = [p1, p2]
+    mock_calc_metrics.return_value = [
+      {
+        "project": p1,
+        "gain": 100.0,
+        "cost": -40.0,
+        "profit": 60.0,
+        "hour_profit": 10.0,
+      },
+      {
+        "project": p2,
+        "gain": 200.0,
+        "cost": -60.0,
+        "profit": 140.0,
+        "hour_profit": 20.0,
+      },
+    ]
 
     service = DashboardService(user, period, includes_open_projects=True)
     composition, total_profit = service.income_projects_composition()
@@ -47,31 +58,43 @@ class TestDashboardService_IncomeProjectsComposition(TestCase):
     self.assertEqual(composition[1]["profit"], 140.0)
     self.assertEqual(composition[1]["percentage"], 70.0)
 
+  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_income_projects_composition_excludes_zero_or_negative_profit(
-    self, mock_projects_qs
+    self, mock_projects_qs, mock_calc_metrics
   ):
     user = MagicMock()
     period = DashboardPeriodFilter(
       start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
     )
 
-    # Project 1: profit = 100 (included)
     p1 = MagicMock()
-    p1.calc_project_profitability.return_value = 100.0
-    p1.task_set.all.return_value = []
-
-    # Project 2: profit = 0 (excluded)
     p2 = MagicMock()
-    p2.calc_project_profitability.return_value = 0.0
-    p2.task_set.all.return_value = []
-
-    # Project 3: profit = -50 (excluded)
     p3 = MagicMock()
-    p3.calc_project_profitability.return_value = -50.0
-    p3.task_set.all.return_value = []
 
-    mock_projects_qs.return_value = [p1, p2, p3]
+    mock_calc_metrics.return_value = [
+      {
+        "project": p1,
+        "gain": 100.0,
+        "cost": 0.0,
+        "profit": 100.0,
+        "hour_profit": 10.0,
+      },
+      {
+        "project": p2,
+        "gain": 0.0,
+        "cost": 0.0,
+        "profit": 0.0,
+        "hour_profit": 0.0,
+      },
+      {
+        "project": p3,
+        "gain": 50.0,
+        "cost": -100.0,
+        "profit": -50.0,
+        "hour_profit": -5.0,
+      },
+    ]
 
     service = DashboardService(user, period, includes_open_projects=True)
     composition, total_profit = service.income_projects_composition()
@@ -81,13 +104,16 @@ class TestDashboardService_IncomeProjectsComposition(TestCase):
     self.assertEqual(composition[0]["project"], p1)
     self.assertEqual(composition[0]["percentage"], 100.0)
 
+  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  def test_income_projects_composition_empty_projects(self, mock_projects_qs):
+  def test_income_projects_composition_empty_projects(
+    self, mock_projects_qs, mock_calc_metrics
+  ):
     user = MagicMock()
     period = DashboardPeriodFilter(
       start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
     )
-    mock_projects_qs.return_value = []
+    mock_calc_metrics.return_value = []
 
     service = DashboardService(user, period, includes_open_projects=True)
     composition, total_profit = service.income_projects_composition()
@@ -95,24 +121,32 @@ class TestDashboardService_IncomeProjectsComposition(TestCase):
     self.assertEqual(composition, [])
     self.assertEqual(total_profit, 0.0)
 
+  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_income_projects_composition_all_zero_or_negative_profit(
-    self, mock_projects_qs
+    self, mock_projects_qs, mock_calc_metrics
   ):
     user = MagicMock()
     period = DashboardPeriodFilter(
       start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
     )
 
-    p1 = MagicMock()
-    p1.calc_project_profitability.return_value = 0.0
-    p1.task_set.all.return_value = []
-
-    p2 = MagicMock()
-    p2.calc_project_profitability.return_value = -10.0
-    p2.task_set.all.return_value = []
-
-    mock_projects_qs.return_value = [p1, p2]
+    mock_calc_metrics.return_value = [
+      {
+        "project": MagicMock(),
+        "gain": 0.0,
+        "cost": 0.0,
+        "profit": 0.0,
+        "hour_profit": 0.0,
+      },
+      {
+        "project": MagicMock(),
+        "gain": 50.0,
+        "cost": -60.0,
+        "profit": -10.0,
+        "hour_profit": -1.0,
+      },
+    ]
 
     service = DashboardService(user, period, includes_open_projects=True)
     composition, total_profit = service.income_projects_composition()

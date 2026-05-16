@@ -96,3 +96,53 @@ class TestDashboardService_ProjectsQS(TestCase):
     from apps.projects_and_clients.models import Project
 
     mock_qs.exclude.assert_called_once_with(status=Project.OPEN_STATUS)
+
+
+class TestDashboardService_CalcProjectsBaseMetrics(TestCase):
+  @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
+  def test_calc_projects_base_metrics_caching_and_return_value(self, mock_projects_qs):
+    user = MagicMock()
+    period = DashboardPeriodFilter(
+      start_date=date(2026, 1, 1), end_date=date(2026, 1, 31)
+    )
+
+    # Mock project
+    project = MagicMock()
+    project.calc_project_total_gain.return_value = 100.0
+    project.calc_project_total_cost.return_value = -40.0
+    project.calc_project_profitability.return_value = 60.0
+    project.calc_project_hour_profitability.return_value = 10.0
+    tasks = ["task1"]
+    project.task_set.all.return_value = tasks
+
+    mock_projects_qs.return_value = [project]
+
+    service = DashboardService(user, period, includes_open_projects=True)
+
+    # First call
+    result1 = service._calc_projects_base_metrics()
+
+    expected = [
+      {
+        "project": project,
+        "gain": 100.0,
+        "cost": -40.0,
+        "profit": 60.0,
+        "hour_profit": 10.0,
+      }
+    ]
+
+    self.assertEqual(result1, expected)
+    self.assertEqual(service._projects_data, expected)
+
+    # Verify model methods were called
+    project.calc_project_total_gain.assert_called_once_with(tasks)
+
+    # Reset mocks to check caching
+    project.calc_project_total_gain.reset_mock()
+
+    # Second call (should use cache)
+    result2 = service._calc_projects_base_metrics()
+
+    self.assertEqual(result2, expected)
+    project.calc_project_total_gain.assert_not_called()
