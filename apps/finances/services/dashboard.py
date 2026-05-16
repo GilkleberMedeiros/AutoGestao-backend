@@ -305,9 +305,13 @@ class DashboardService:
     if projects that are still open should be included.
     The returned queryset is optimized for most of DashboardService methods.
     """
-    project_qs = Project.objects.filter(
-      user=user, created_at__date__range=(period.start_date, period.end_date)
-    ).prefetch_related("task_set__movimentation")
+    project_qs = (
+      Project.objects.filter(
+        user=user, created_at__date__range=(period.start_date, period.end_date)
+      )
+      .exclude(status=Project.CANCELLED_STATUS)
+      .prefetch_related("task_set__movimentation")
+    )
 
     if not includes_open_projects:
       project_qs = project_qs.exclude(status=Project.OPEN_STATUS)
