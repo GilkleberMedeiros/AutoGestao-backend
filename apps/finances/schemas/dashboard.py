@@ -19,3 +19,13 @@ class DashboardPeriodFilter(Schema):
 
 class DashboardFilter(DashboardPeriodFilter):
   includes_open_projects: bool
+
+
+class ProjectsRankingsFilter(DashboardFilter):
+  rankings_count: int = 5
+
+  @model_validator(mode="after")
+  def validate_rankings_count(self):
+    if self.rankings_count <= 0:
+      raise ValueError("rankings_count must be greater than 0")
+    return self
