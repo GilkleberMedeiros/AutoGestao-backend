@@ -16,3 +16,6 @@ class DashboardPeriodFilter(Schema):
       raise ValueError("start_date cannot be greater than end_date")
     return self
 
+
+class DashboardFilter(DashboardPeriodFilter):
+  includes_open_projects: bool

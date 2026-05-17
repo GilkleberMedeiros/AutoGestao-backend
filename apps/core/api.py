@@ -43,3 +43,4 @@ api.add_router(
   "finances/groups/<str:movgroup_id>/movimentations",
   router="apps.finances.routes.movimentation.router",
 )
+api.add_router("finances/dashboard", router="apps.finances.routes.dashboard.router")

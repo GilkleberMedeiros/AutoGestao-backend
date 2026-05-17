@@ -167,6 +167,8 @@ class JWTAuthenticationMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
     r"^/?api/finances/groups/[a-zA-Z0-9-]+/?$",
     r"^/?api/finances/groups/[a-zA-Z0-9-]+/movimentations/?$",
     r"^/?api/finances/groups/[a-zA-Z0-9-]+/movimentations/[a-zA-Z0-9-]+/?$",
+    r"^/?api/finances/dashboard/?$",
+    r"^/?api/finances/dashboard/.*$",
   ]
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):
@@ -252,6 +254,8 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
     r"^/?api/finances/groups/[a-zA-Z0-9-]+/?$",
     r"^/?api/finances/groups/[a-zA-Z0-9-]+/movimentations/?$",
     r"^/?api/finances/groups/[a-zA-Z0-9-]+/movimentations/[a-zA-Z0-9-]+/?$",
+    r"^/?api/finances/dashboard/?$",
+    r"^/?api/finances/dashboard/.*$",
   ]
 
   def __init__(self, get_response: Callable[[Any], HttpResponse]):
