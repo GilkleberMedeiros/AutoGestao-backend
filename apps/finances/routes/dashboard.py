@@ -6,8 +6,13 @@ from apps.finances.schemas.dashboard import (
   ProjectsRankingsFilter,
   ProjectsRankingsRes,
   IncomeProjectsCompositionRes,
+  IncomeHistoryFilter,
 )
-from apps.finances.services.dashboard import DashboardService, FastViewsDTO
+from apps.finances.services.dashboard import (
+  DashboardService,
+  FastViewsDTO,
+  IncomeHistoryDTO,
+)
 
 router = Router()
 
@@ -66,3 +71,22 @@ def income_projects_composition(request, filters: DashboardFilter = Query(...)):
     "composition": composition,
     "total_profitability": total_profitability,
   }
+
+
+@router.get(
+  "/income-history",
+  response={200: IncomeHistoryDTO, 401: BaseAPIResponse},
+)
+def income_history(request, filters: IncomeHistoryFilter = Query(...)):
+  if not request.user.is_authenticated:
+    return 401, {"details": "Unauthenticated", "success": False}
+
+  service = DashboardService(
+    user=request.user,
+    period=filters,
+    includes_open_projects=filters.includes_open_projects,
+  )
+
+  return 200, service.income_history(
+    includes_personal_finances=filters.includes_personal_finances
+  )

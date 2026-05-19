@@ -52,3 +52,7 @@ class ProjectProfitComposition(Schema):
 class IncomeProjectsCompositionRes(Schema):
   composition: list[ProjectProfitComposition]
   total_profitability: float
+
+
+class IncomeHistoryFilter(DashboardFilter):
+  includes_personal_finances: bool
