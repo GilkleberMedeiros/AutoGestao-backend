@@ -7,9 +7,11 @@ from apps.finances.schemas.dashboard import (
   ProjectsRankingsRes,
   IncomeProjectsCompositionRes,
   IncomeHistoryFilter,
+  DashboardRouteFilter,
+  DashboardRes,
 )
-from apps.finances.services.dashboard import (
-  DashboardService,
+from apps.finances.services.dashboard.service import DashboardService
+from apps.finances.services.dashboard.dto import (
   FastViewsDTO,
   IncomeHistoryDTO,
 )
@@ -90,3 +92,34 @@ def income_history(request, filters: IncomeHistoryFilter = Query(...)):
   return 200, service.income_history(
     includes_personal_finances=filters.includes_personal_finances
   )
+
+
+@router.get(
+  "/",
+  response={200: DashboardRes, 401: BaseAPIResponse},
+)
+def dashboard(request, filters: DashboardRouteFilter = Query(...)):
+  if not request.user.is_authenticated:
+    return 401, {"details": "Unauthenticated", "success": False}
+
+  service = DashboardService(
+    user=request.user,
+    period=filters,
+    includes_open_projects=filters.includes_open_projects,
+  )
+  metrics = filters.include_metric
+
+  dashboard_data = service.dashboard(
+    includes_personal_finances=filters.includes_personal_finances,
+    rankings_count=filters.rankings_count,
+    metrics=metrics,
+  )
+
+  if dashboard_data.get("income_projects_composition") is not None:
+    comp, total = dashboard_data["income_projects_composition"]
+    dashboard_data["income_projects_composition"] = {
+      "composition": comp,
+      "total_profitability": total,
+    }
+
+  return 200, dashboard_data

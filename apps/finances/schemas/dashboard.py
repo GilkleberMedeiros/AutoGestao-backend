@@ -4,6 +4,11 @@ from ninja import Schema
 from pydantic import model_validator
 
 from apps.projects_and_clients.schemas.project import ProjectSchema
+from apps.finances.services.dashboard.dto import (
+  DashboardMetricsParamT,
+  FastViewsDTO,
+  IncomeHistoryDTO,
+)
 
 
 class DashboardPeriodFilter(Schema):
@@ -56,3 +61,15 @@ class IncomeProjectsCompositionRes(Schema):
 
 class IncomeHistoryFilter(DashboardFilter):
   includes_personal_finances: bool
+
+
+class DashboardRouteFilter(ProjectsRankingsFilter):
+  includes_personal_finances: bool
+  include_metric: list[DashboardMetricsParamT] | None = None
+
+
+class DashboardRes(Schema):
+  projects_fast_views: FastViewsDTO | None = None
+  projects_rankings: ProjectsRankingsRes | None = None
+  income_projects_composition: IncomeProjectsCompositionRes | None = None
+  income_history: IncomeHistoryDTO | None = None
