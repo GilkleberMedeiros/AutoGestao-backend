@@ -56,7 +56,7 @@ class TestDashboardService_DateRange(TestCase):
 
 
 class TestDashboardService_ProjectsQS(TestCase):
-  @patch("apps.finances.services.dashboard.Project.objects.filter")
+  @patch("apps.finances.services.dashboard.service.Project.objects.filter")
   def test_projects_qs_filtering_and_optimization(self, mock_filter):
     user = MagicMock()
     period = DashboardPeriodFilter(
@@ -83,7 +83,7 @@ class TestDashboardService_ProjectsQS(TestCase):
 
     self.assertEqual(result, mock_qs)
 
-  @patch("apps.finances.services.dashboard.Project.objects.filter")
+  @patch("apps.finances.services.dashboard.service.Project.objects.filter")
   def test_projects_qs_excludes_open_projects_when_requested(self, mock_filter):
     user = MagicMock()
     period = DashboardPeriodFilter(

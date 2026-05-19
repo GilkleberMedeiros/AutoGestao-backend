@@ -18,8 +18,10 @@ class TestDashboardService_IncomeHistory(TestCase):
     )
 
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  @patch("apps.finances.services.dashboard.Movimentation.objects.filter")
-  def test_income_history_aggregations_and_exclusions(self, mock_mov_filter, mock_projects_qs):
+  @patch("apps.finances.services.dashboard.service.Movimentation.objects.filter")
+  def test_income_history_aggregations_and_exclusions(
+    self, mock_mov_filter, mock_projects_qs
+  ):
     # p1: Closed within period (Jan 1)
     p1 = MagicMock(closed_at=datetime(2026, 1, 1), labor_fee=100.0)
     # t1: Movimentation within period (Jan 2)
@@ -45,14 +47,16 @@ class TestDashboardService_IncomeHistory(TestCase):
     # Jan 1: 100.0 (p1 labor fee)
     # Jan 2: 50.0 (t1 movement)
     # p2 labor fee and t2 movement are ignored (> Jan 2)
-    self.assertEqual(result, [
-      {"date": "2026-01-01", "profit": 100.0},
-      {"date": "2026-01-02", "profit": 50.0}
-    ])
+    self.assertEqual(
+      result,
+      [{"date": "2026-01-01", "profit": 100.0}, {"date": "2026-01-02", "profit": 50.0}],
+    )
 
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  @patch("apps.finances.services.dashboard.Movimentation.objects.filter")
-  def test_income_history_personal_finances_filter(self, mock_mov_filter, mock_projects_qs):
+  @patch("apps.finances.services.dashboard.service.Movimentation.objects.filter")
+  def test_income_history_personal_finances_filter(
+    self, mock_mov_filter, mock_projects_qs
+  ):
     mock_projects_qs.return_value = []
     mock_mov_filter.return_value = []
 
@@ -62,20 +66,24 @@ class TestDashboardService_IncomeHistory(TestCase):
     mock_mov_filter.assert_called_once_with(
       mov_group__user=self.user,
       mov_group__relation="NORELATION",
-      movemented_at__date__range=(self.period.start_date, self.period.end_date)
+      movemented_at__date__range=(self.period.start_date, self.period.end_date),
     )
 
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  @patch("apps.finances.services.dashboard.Movimentation.objects.filter")
-  def test_income_history_excludes_personal_finances_when_false(self, mock_mov_filter, mock_projects_qs):
+  @patch("apps.finances.services.dashboard.service.Movimentation.objects.filter")
+  def test_income_history_excludes_personal_finances_when_false(
+    self, mock_mov_filter, mock_projects_qs
+  ):
     mock_projects_qs.return_value = []
     service = DashboardService(self.user, self.period, True)
     service.income_history(False)
     mock_mov_filter.assert_not_called()
 
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
-  @patch("apps.finances.services.dashboard.Movimentation.objects.filter")
-  def test_income_history_includes_personal_finances_when_true(self, mock_mov_filter, mock_projects_qs):
+  @patch("apps.finances.services.dashboard.service.Movimentation.objects.filter")
+  def test_income_history_includes_personal_finances_when_true(
+    self, mock_mov_filter, mock_projects_qs
+  ):
     mock_projects_qs.return_value = []
     # Movimentation on Jan 1 with value 50
     mov = MagicMock()
@@ -92,19 +100,21 @@ class TestDashboardService_IncomeHistory(TestCase):
 
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_income_history_sorting(self, mock_projects_qs):
-    # Ensure even if generated out of order (though generator is sequential), 
+    # Ensure even if generated out of order (though generator is sequential),
     # the output is sorted.
     self.period.start_date = date(2026, 1, 1)
     self.period.end_date = date(2026, 1, 3)
-    
+
     # We mock _date_range to yield dates out of order to test the sort
-    with patch("apps.finances.services.dashboard.DashboardService._date_range") as mock_range:
+    with patch(
+      "apps.finances.services.dashboard.DashboardService._date_range"
+    ) as mock_range:
       mock_range.return_value = [date(2026, 1, 3), date(2026, 1, 1), date(2026, 1, 2)]
       mock_projects_qs.return_value = []
-      
+
       service = DashboardService(self.user, self.period, True)
       result = service.income_history(False)
-      
+
       dates = [r["date"] for r in result]
       self.assertEqual(dates, ["2026-01-01", "2026-01-02", "2026-01-03"])
 
@@ -112,6 +122,6 @@ class TestDashboardService_IncomeHistory(TestCase):
   def test_income_history_empty_range(self, mock_projects_qs):
     self.period.start_date, self.period.end_date = date(2026, 1, 2), date(2026, 1, 1)
     mock_projects_qs.return_value = []
-    
+
     service = DashboardService(self.user, self.period, True)
     self.assertEqual(service.income_history(False), [])

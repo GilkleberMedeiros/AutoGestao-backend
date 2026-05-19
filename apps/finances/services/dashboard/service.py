@@ -1,70 +1,23 @@
-from typing import TypedDict
+from typing import List
 from copy import copy
 from datetime import date, timedelta
-
 from django.db.models import QuerySet
 
-from apps.core.exceptions import AppError
 from apps.finances.schemas.dashboard import DashboardPeriodFilter
+
+
 from apps.finances.models import Movimentation
 from apps.projects_and_clients.models import Project
 from apps.users.models import User
-
-
-class InvalidRankingsCountError(AppError):
-  def __init__(
-    self, message: str = "Invalid rankings count. Must be greater than 0."
-  ) -> None:
-    super().__init__(message)
-
-
-class FastViewsDTO(TypedDict):
-  total_gains: float
-  total_costs: float
-  profitability: float
-
-
-class _ProjectRankingDTO(TypedDict):
-  project: Project
-  value: float
-
-
-class RankingsDTO(TypedDict):
-  total_gain: list[_ProjectRankingDTO]
-  total_cost: list[_ProjectRankingDTO]
-  profitability: list[_ProjectRankingDTO]
-  hour_profitability: list[_ProjectRankingDTO]
-
-
-class ProjectProfitCompositionDTO(TypedDict):
-  project: Project
-  profit: float
-  percentage: float
-
-
-IncomeProjectsCompositionDTO = tuple[list[ProjectProfitCompositionDTO], float]
-
-
-class IncomeRegisterDTO(TypedDict):
-  date: str
-  profit: float
-
-
-IncomeHistoryDTO = list[IncomeRegisterDTO]
-
-
-class DashboardDTO(TypedDict):
-  projects_fast_views: FastViewsDTO | None
-  projects_rankings: RankingsDTO | None
-  income_projects_composition: IncomeProjectsCompositionDTO | None
-  income_history: IncomeHistoryDTO | None
-
-
-class DashboardMetricsParam(TypedDict):
-  projects_fast_views: bool
-  projects_rankings: bool
-  income_projects_composition: bool
-  income_history: bool
+from .exceptions import InvalidRankingsCountError
+from .dto import (
+  DashboardDTO,
+  DashboardMetricsParamT,
+  FastViewsDTO,
+  IncomeHistoryDTO,
+  IncomeProjectsCompositionDTO,
+  RankingsDTO,
+)
 
 
 class DashboardService:
@@ -89,7 +42,7 @@ class DashboardService:
     self,
     includes_personal_finances: bool,
     rankings_count: int = 5,
-    metrics: DashboardMetricsParam | None = None,
+    metrics: List[DashboardMetricsParamT] | None = None,
   ):
     """
     Return the entire dashboard with the dashboard metrics.
@@ -116,16 +69,16 @@ class DashboardService:
       income_history=None,
     )
 
-    if metrics.get("projects_fast_views", False):
+    if "projects_fast_views" in metrics:
       dashboard["projects_fast_views"] = self.fast_views()
 
-    if metrics.get("projects_rankings", False):
+    if "projects_rankings" in metrics:
       dashboard["projects_rankings"] = self.projects_rankings(rankings_count)
 
-    if metrics.get("income_projects_composition", False):
+    if "income_projects_composition" in metrics:
       dashboard["income_projects_composition"] = self.income_projects_composition()
 
-    if metrics.get("income_history", False):
+    if "income_history" in metrics:
       dashboard["income_history"] = self.income_history(includes_personal_finances)
 
     return dashboard

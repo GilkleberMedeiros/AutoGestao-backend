@@ -66,7 +66,7 @@ class TestDashboardService_Dashboard(TestCase):
     mock_fast_views.return_value = {"total_gains": 100.0}
     mock_history.return_value = []
 
-    metrics = {"projects_fast_views": True, "income_history": True}
+    metrics = ["projects_fast_views", "income_history"]
 
     result = self.service.dashboard(includes_personal_finances=False, metrics=metrics)
 
@@ -93,7 +93,7 @@ class TestDashboardService_Dashboard(TestCase):
   def test_dashboard_no_metrics_requested(
     self, mock_history, mock_composition, mock_rankings, mock_fast_views
   ):
-    metrics = {"projects_fast_views": False, "projects_rankings": False}
+    metrics = []
 
     result = self.service.dashboard(includes_personal_finances=True, metrics=metrics)
 
