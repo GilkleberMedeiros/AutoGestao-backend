@@ -41,3 +41,14 @@ class ProjectsRankingsRes(Schema):
   total_cost: list[ProjectRanking]
   profitability: list[ProjectRanking]
   hour_profitability: list[ProjectRanking]
+
+
+class ProjectProfitComposition(Schema):
+  project: ProjectSchema
+  profit: float
+  percentage: float
+
+
+class IncomeProjectsCompositionRes(Schema):
+  composition: list[ProjectProfitComposition]
+  total_profitability: float

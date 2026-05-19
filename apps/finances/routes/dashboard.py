@@ -5,6 +5,7 @@ from apps.finances.schemas.dashboard import (
   DashboardFilter,
   ProjectsRankingsFilter,
   ProjectsRankingsRes,
+  IncomeProjectsCompositionRes,
 )
 from apps.finances.services.dashboard import DashboardService, FastViewsDTO
 
@@ -43,3 +44,25 @@ def projects_rankings(request, filters: ProjectsRankingsFilter = Query(...)):
   )
 
   return 200, service.projects_rankings(rankings_count=filters.rankings_count)
+
+
+@router.get(
+  "/income-projects-composition",
+  response={200: IncomeProjectsCompositionRes, 401: BaseAPIResponse},
+)
+def income_projects_composition(request, filters: DashboardFilter = Query(...)):
+  if not request.user.is_authenticated:
+    return 401, {"details": "Unauthenticated", "success": False}
+
+  service = DashboardService(
+    user=request.user,
+    period=filters,
+    includes_open_projects=filters.includes_open_projects,
+  )
+
+  composition, total_profitability = service.income_projects_composition()
+
+  return 200, {
+    "composition": composition,
+    "total_profitability": total_profitability,
+  }
