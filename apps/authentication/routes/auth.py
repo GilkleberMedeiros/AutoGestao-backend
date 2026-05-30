@@ -65,7 +65,7 @@ def register(request: HttpRequest, response: HttpResponse, body: RegisterReq):
 
   # Send validation email for user immediately after registration
   try:
-    EmailValidationService.send_validation_email(request, user)
+    EmailValidationService.send_validation_email(user)
   except Exception as _:
     return 201, {
       "details": "User created successfully! "

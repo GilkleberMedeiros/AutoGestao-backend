@@ -1,4 +1,3 @@
-from django.http import HttpRequest
 from django.core.cache import caches
 from django.template.loader import render_to_string
 from django.utils.timezone import get_current_timezone
@@ -26,7 +25,6 @@ class EmailValidationService:
   @classmethod
   def send_validation_email(
     cls,
-    request: HttpRequest,
     user: User,
     *,
     subject: str = "Validação de Email - App AutoGestão",

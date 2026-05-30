@@ -20,7 +20,6 @@ from apps.users.models import User
 )
 class TestEmailValidation_SendValidationEmail(TestCase):
   def setUp(self):
-    self.request = MagicMock()
     self.user = MagicMock()
     self.user.id = "user_id"
 
@@ -31,8 +30,7 @@ class TestEmailValidation_SendValidationEmail(TestCase):
     generate_token.return_value = token
     set_token.return_value = f"email-validation-{token}"
 
-    result = EmailValidationService.send_validation_email(self.request, self.user)
-
+    result = EmailValidationService.send_validation_email(self.user)
     self.assertEqual(result, token)
     generate_token.assert_called_once()
     set_token.assert_called_once_with(self.user.id, token)
@@ -42,7 +40,7 @@ class TestEmailValidation_SendValidationEmail(TestCase):
   def test_send_validation_email_uses_defaults(
     self, generate_token: MagicMock, set_token: MagicMock, render_to_string: MagicMock
   ):
-    EmailValidationService.send_validation_email(self.request, self.user)
+    EmailValidationService.send_validation_email(self.user)
 
     args, kwargs = self.user.email_user.call_args
     self.assertEqual(kwargs["from_email"], EmailValidationService.validation_from_email)
@@ -58,7 +56,6 @@ class TestEmailValidation_SendValidationEmail(TestCase):
     custom_from = "custom@example.com"
 
     EmailValidationService.send_validation_email(
-      self.request,
       self.user,
       subject=custom_subject,
       validation_template=custom_template,
@@ -87,7 +84,7 @@ class TestEmailValidation_SendValidationEmail(TestCase):
     set_token.return_value = formatted_token
 
     with self.assertRaises(ExternalServiceError):
-      EmailValidationService.send_validation_email(self.request, self.user)
+      EmailValidationService.send_validation_email(self.user)
 
     delete_token.assert_called_once_with(formatted_token)
 

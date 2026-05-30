@@ -30,7 +30,7 @@ def request_email_validation(request: HttpRequest):
   validation_manager = EmailValidationService()
 
   try:
-    _ = validation_manager.send_validation_email(request, user)
+    _ = validation_manager.send_validation_email(user)
   except ExternalServiceError:
     return 500, {"details": "Failed to send validation email.", "success": False}
 
