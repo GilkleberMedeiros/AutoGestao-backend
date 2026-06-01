@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from apps.projects_and_clients.schemas.task import (
   CreateTaskReq,
   UpdateTaskReq,
@@ -22,6 +24,7 @@ class MovGroupNotFoundError(ResourceNotFoundError):
 
 class TaskService:
   @staticmethod
+  @transaction.atomic
   def create(user: User, project_id: str, data: CreateTaskReq) -> Task:
     data = data.model_dump(exclude_unset=True)
 
