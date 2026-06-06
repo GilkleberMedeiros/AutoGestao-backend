@@ -176,6 +176,28 @@ class UserUpdateRoutesTestCase(AuthenticatedTestCase):
     self.assertEqual(self.user.name, data["name"])
     self.assertEqual(self.user.email, data["email"])
 
+  def test_put_can_update_user_when_user_email_is_invalid(self):
+    """
+    Test if update doesn't validate the User email.
+    """
+    self.user.is_email_valid = False
+    self.user.save()
+    token = self._get_valid_token()
+    data = {
+      "name": "updated name",
+      "email": "updated@example.com",
+      "phone": "5584999999999",
+    }
+
+    res = self._make_put_request(data, {"Authorization": f"Bearer {token}"})
+    self.assertEqual(res.status_code, 200)
+
+    # Verify in DB
+    self.user.refresh_from_db()
+    self.assertEqual(self.user.name, "updated name")
+    self.assertEqual(self.user.email, "updated@example.com")
+    self.assertEqual(self.user.phone, "5584999999999")
+
   # --- PATCH TESTS ---
 
   def test_patch_success_partial_update(self):
@@ -290,3 +312,19 @@ class UserUpdateRoutesTestCase(AuthenticatedTestCase):
     self.assertEqual(self.user.phone, data["phone"])
     self.assertEqual(self.user.name, data["name"])
     self.assertEqual(self.user.email, data["email"])
+
+  def test_patch_can_update_user_when_user_email_is_invalid(self):
+    self.user.is_email_valid = False
+    self.user.save()
+    token = self._get_valid_token()
+    old_email = self.user.email
+    old_phone = self.user.phone
+    data = {"name": "patched name"}
+
+    res = self._make_patch_request(data, {"Authorization": f"Bearer {token}"})
+    self.assertEqual(res.status_code, 200)
+
+    self.user.refresh_from_db()
+    self.assertEqual(self.user.name, "patched name")
+    self.assertEqual(self.user.email, old_email)
+    self.assertEqual(self.user.phone, old_phone)
