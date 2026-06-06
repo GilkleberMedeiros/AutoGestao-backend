@@ -93,6 +93,7 @@ class TaskService:
     return task
 
   @staticmethod
+  @transaction.atomic
   def delete(user: User, task_id: str, project_id: str):
     task = TaskService.get(user, task_id, project_id)
     if task.movimentation:
