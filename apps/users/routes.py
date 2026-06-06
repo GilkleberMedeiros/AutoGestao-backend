@@ -3,12 +3,12 @@ from ninja.files import UploadedFile
 from django.http import HttpRequest
 
 from apps.core.schemas.response import BaseAPIResponse
-from apps.users.schemas import UpdateUserReq, PartialUpdateUserReq
-from apps.users.service import (
+from apps.users.services.user import (
   UserService,
   UserEmailAlreadyExistsError,
   UserPhoneAlreadyExistsError,
 )
+from apps.users.schemas import UpdateUserReq, PartialUpdateUserReq
 from apps.authentication.schemas import UserMeRes
 
 router = Router()

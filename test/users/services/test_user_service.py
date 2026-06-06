@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
-from apps.users.service import (
+from apps.users.services.user import (
   UserService,
   UserEmailAlreadyExistsError,
   UserPhoneAlreadyExistsError,
@@ -80,7 +80,7 @@ class UserServiceTestCase__update(BaseUserServiceTestCase):
     self.assertIsNotNone(user_mock.phone)
     self.assertEqual(user_mock.phone, "5584900000000")
 
-  @patch("apps.users.service.UserService.check_unique_constraints")
+  @patch("apps.users.services.user.UserService.check_unique_constraints")
   def test_partial_update_calls_check_unique_constraints_before_update(
     self, check_mock
   ):
@@ -167,7 +167,7 @@ class UserServiceTestCase__partial_update(BaseUserServiceTestCase):
     self.assertIsNotNone(updated_user)
     self.assertIsNone(updated_user.phone)
 
-  @patch("apps.users.service.UserService.check_unique_constraints")
+  @patch("apps.users.services.user.UserService.check_unique_constraints")
   def test_partial_update_calls_check_unique_constraints_before_update(
     self, check_mock
   ):
@@ -187,7 +187,7 @@ class UserServiceTestCase__partial_update(BaseUserServiceTestCase):
 
 
 class UserServiceTestCase__check_unique_constraints(BaseUserServiceTestCase):
-  @patch("apps.users.service.User")
+  @patch("apps.users.services.user.User")
   def test_raises_user_email_already_exists_error_if_email_already_exists(
     self, model_mock
   ):
@@ -210,7 +210,7 @@ class UserServiceTestCase__check_unique_constraints(BaseUserServiceTestCase):
     with self.assertRaises(UserEmailAlreadyExistsError):
       UserService.check_unique_constraints(user_mock, data)
 
-  @patch("apps.users.service.User")
+  @patch("apps.users.services.user.User")
   def test_raises_user_phone_already_exists_error_if_phone_already_exists(
     self, model_mock
   ):
@@ -233,7 +233,7 @@ class UserServiceTestCase__check_unique_constraints(BaseUserServiceTestCase):
     with self.assertRaises(UserPhoneAlreadyExistsError):
       UserService.check_unique_constraints(user_mock, data)
 
-  @patch("apps.users.service.User")
+  @patch("apps.users.services.user.User")
   def test_excludes_request_user_by_user_id(self, model_mock):
     user_mock = self._make_user_mock("Test", "test.email@example.com", "558400110011")
 

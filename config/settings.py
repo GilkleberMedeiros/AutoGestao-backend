@@ -170,6 +170,12 @@ AUTH_PASSWORD_VALIDATORS = [
   },
 ]
 
+# User Deletion Settings
+CONFIRM_USER_DELETION_EMAIL_TEMPLATE = "emails/confirm_deletion.html"
+WARN_USER_DELETION_EMAIL_TEMPLATE = "emails/warn_deletion.html"
+WARN_USER_DELETION_SMS_TEMPLATE = "sms/warn_deletion.txt"
+USER_DELETION_VERIFICATION_TOKEN_LIFETIME = timedelta(minutes=15)
+
 # Email Settings
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = _EMAIL_HOST
