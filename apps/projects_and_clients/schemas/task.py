@@ -4,6 +4,12 @@ from apps.projects_and_clients.models import Task
 from apps.finances.models import Movimentation
 
 
+class MovimentationInTaskSchema(ModelSchema):
+  class Meta:
+    model = Movimentation
+    fields = ["id", "amount", "balance", "reason", "movemented_at"]
+
+
 class TaskSchema(ModelSchema):
   class Meta:
     model = Task
@@ -16,8 +22,10 @@ class TaskSchema(ModelSchema):
       "updated_at",
     ]
 
+  movimentation: MovimentationInTaskSchema | None = None
 
-class MovimentationInTask(ModelSchema):
+
+class MovimentationInTaskCreate(ModelSchema):
   class Meta:
     model = Movimentation
     fields = ["amount", "balance"]
@@ -28,7 +36,7 @@ class CreateTaskReq(ModelSchema):
     model = Task
     fields = ["name", "do_at"]
 
-  movimentation: MovimentationInTask | None = None
+  movimentation: MovimentationInTaskCreate | None = None
 
 
 class UpdateTaskReq(ModelSchema):

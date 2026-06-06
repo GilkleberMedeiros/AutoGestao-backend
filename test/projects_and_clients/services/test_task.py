@@ -146,13 +146,14 @@ class TestTaskService_List(TestCase):
     project_id = str(uuid.uuid4())
     mock_qs = MagicMock()
     MockTask.objects.filter.return_value = mock_qs
-    mock_qs.filter.return_value = mock_qs
+    mock_qs.select_related.return_value = mock_qs
 
     result = TaskService.list(user, project_id=project_id)
 
     MockTask.objects.filter.assert_called_once_with(
       project=project_id, project__user=user
     )
+    mock_qs.select_related.assert_called_once_with("movimentation")
     self.assertEqual(result, mock_qs)
 
 
@@ -165,17 +166,18 @@ class TestTaskService_Get(TestCase):
 
     task_mock = MagicMock()
     task_mock.project.id = project_id
-    MockTask.objects.filter.return_value.first.return_value = task_mock
+    MockTask.objects.filter.return_value.select_related.return_value.first.return_value = task_mock
 
     result = TaskService.get(user, task_id, project_id)
 
     self.assertEqual(result, task_mock)
     MockTask.objects.filter.assert_called_once_with(id=task_id, project__user=user)
+    MockTask.objects.filter.return_value.select_related.assert_called_once_with("movimentation")
 
   @patch("apps.projects_and_clients.services.task.Task")
   def test_get_task_not_found(self, MockTask):
     user = MagicMock()
-    MockTask.objects.filter.return_value.first.return_value = None
+    MockTask.objects.filter.return_value.select_related.return_value.first.return_value = None
 
     with self.assertRaises(ResourceNotFoundError):
       TaskService.get(user, str(uuid.uuid4()), str(uuid.uuid4()))
@@ -190,7 +192,7 @@ class TestTaskService_Get(TestCase):
 
     task_mock = MagicMock()
     task_mock.project.id = other_project_id
-    MockTask.objects.filter.return_value.first.return_value = task_mock
+    MockTask.objects.filter.return_value.select_related.return_value.first.return_value = task_mock
 
     with self.assertRaises(ResourceNotFoundError):
       TaskService.get(user, task_id, requested_project_id)

@@ -60,13 +60,19 @@ class TaskService:
     user: User,
     project_id: str,
   ):
-    tasks = Task.objects.filter(project=project_id, project__user=user)
+    tasks = Task.objects.filter(
+      project=project_id, project__user=user
+    ).select_related("movimentation")
 
     return tasks
 
   @staticmethod
   def get(user: User, task_id: str, project_id: str) -> Task:
-    task = Task.objects.filter(id=task_id, project__user=user).first()
+    task = (
+      Task.objects.filter(id=task_id, project__user=user)
+      .select_related("movimentation")
+      .first()
+    )
     if not task:
       raise ResourceNotFoundError("Task not found.")
     if str(task.project.id) != project_id:

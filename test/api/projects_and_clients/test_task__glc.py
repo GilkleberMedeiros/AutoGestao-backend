@@ -6,7 +6,7 @@ from test.api.base import APIClient
 from test.api.conftest import AuthenticatedTestCase
 from apps.users.models import User
 from apps.projects_and_clients.models import Client, Project, Task
-from apps.finances.models import MovGroup
+from apps.finances.models import MovGroup, Movimentation
 
 
 class BaseTaskTestCase(AuthenticatedTestCase):
@@ -46,10 +46,34 @@ class BaseTaskTestCase(AuthenticatedTestCase):
       do_at=timezone.now() + timezone.timedelta(days=1),
     )
 
+    cls.mov_group_obj = MovGroup.objects.filter(
+      related_to=cls.project_obj.id,
+      user=cls.user,
+    ).first()
+    if not cls.mov_group_obj:
+      cls.fail("MovGroup wasn't automatically created for created project!")
+
+    cls.movimentation_obj = Movimentation.objects.create(
+      mov_group=cls.mov_group_obj,
+      amount=150.00,
+      balance="+",
+      reason="Api Test Task Movimentation",
+    )
+
+    cls.task_with_mov_obj = Task.objects.create(
+      project=cls.project_obj,
+      name="Api Test Task with Movimentation",
+      do_at=timezone.now() + timezone.timedelta(days=1),
+      movimentation=cls.movimentation_obj,
+    )
+
     cls.URL = f"/api/projects/{cls.project_obj.id}/tasks"
 
   @classmethod
   def tearDownClass(cls):
+    cls.task_with_mov_obj.delete()
+    cls.movimentation_obj.delete()
+    cls.mov_group_obj.delete()
     cls.task_obj.delete()
     cls.project_obj.delete()
     cls.client_obj.delete()
@@ -76,12 +100,42 @@ class TasksRoute_List(BaseTaskTestCase):
     self.assertIsInstance(data, dict)
     self.assertIn("items", data)
     self.assertIsInstance(data["items"], list)
-    self.assertEqual(len(data["items"]), 1)
+    self.assertEqual(len(data["items"]), 2)
 
-    task_data = data["items"][0]
+    # Find the default task in the response list
+    task_data = next(
+      (item for item in data["items"] if item["id"] == str(self.task_obj.id)), None
+    )
+    self.assertIsNotNone(task_data)
     self.assertIsNotNone(task_data["do_at"])
     self.assertEqual(task_data["name"], "Api Test Task")
-    self.assertEqual(task_data["id"], str(self.task_obj.id))
+    self.assertIsNone(task_data["movimentation"])
+
+  def test_list_tasks_includes_movimentation_if_exists(self):
+    token = self._get_valid_token()
+
+    res = self.client.get("", headers={"Authorization": f"Bearer {token}"})
+    data = res.json()
+
+    self.assertEqual(res.status_code, 200)
+    items = data["items"]
+
+    # Find the task with movimentation in the response list
+    created_task_data = next(
+      (item for item in items if item["id"] == str(self.task_with_mov_obj.id)), None
+    )
+    self.assertIsNotNone(created_task_data)
+
+    # Verify it has movimentation info
+    self.assertIsNotNone(created_task_data["movimentation"])
+    self.assertEqual(
+      created_task_data["movimentation"]["id"], str(self.movimentation_obj.id)
+    )
+    self.assertEqual(float(created_task_data["movimentation"]["amount"]), 150.00)
+    self.assertEqual(created_task_data["movimentation"]["balance"], "+")
+    self.assertEqual(
+      created_task_data["movimentation"]["reason"], "Api Test Task Movimentation"
+    )
 
   def test_list_tasks_unauthenticated_returns_401(self):
     res = self.client.get("")
@@ -108,6 +162,23 @@ class TasksRoute_Get(BaseTaskTestCase):
     self.assertIsNotNone(data["do_at"])
     self.assertEqual(data["name"], "Api Test Task")
     self.assertEqual(data["id"], str(self.task_obj.id))
+    self.assertIsNone(data["movimentation"])
+
+  def test_get_task_includes_movimentation_if_exists(self):
+    token = self._get_valid_token()
+
+    res = self.client.get(
+      f"/{self.task_with_mov_obj.id}", headers={"Authorization": f"Bearer {token}"}
+    )
+    self.assertEqual(res.status_code, 200)
+    data = res.json()
+
+    # Verify it has movimentation info
+    self.assertIsNotNone(data["movimentation"])
+    self.assertEqual(data["movimentation"]["id"], str(self.movimentation_obj.id))
+    self.assertEqual(float(data["movimentation"]["amount"]), 150.00)
+    self.assertEqual(data["movimentation"]["balance"], "+")
+    self.assertEqual(data["movimentation"]["reason"], "Api Test Task Movimentation")
 
   def test_get_task_unauthenticated_returns_401(self):
     res = self.client.get(f"/{self.task_obj.id}")
