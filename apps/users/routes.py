@@ -1,4 +1,4 @@
-from ninja import Router, File
+from ninja import Router, File, Query
 from ninja.files import UploadedFile
 from django.http import HttpRequest
 
@@ -8,6 +8,7 @@ from apps.users.services.user import (
   UserEmailAlreadyExistsError,
   UserPhoneAlreadyExistsError,
 )
+from apps.users.services.user_deletion import UserDeleteService
 from apps.users.schemas import UpdateUserReq, PartialUpdateUserReq
 from apps.authentication.schemas import UserMeRes
 
@@ -58,3 +59,36 @@ def upload_profile_photo(request: HttpRequest, file: File[UploadedFile]):
   user.save()
 
   return 200, user
+
+
+@router.delete("", response={200: BaseAPIResponse, 400: BaseAPIResponse})
+def delete_user(request: HttpRequest, verification_code: str | None = Query(None)):
+  """
+  This routes deletes the User.
+  If the verification_code param is given within query string, verify code and
+  permanetly deletes user.
+  Otherwise, if the verification_code isn't given, send an email to User
+  containing the verification code (sends warn email and SMS too).
+
+  """
+  user = request.user
+  if not user.is_authenticated:
+    return 400, {"details": "User not authenticated", "success": False}
+
+  if verification_code is None or not verification_code:
+    UserDeleteService.send_verification_code_email(user)
+    UserDeleteService.send_warn_email(user)
+    # Send warn sms if has method.
+    return 200, {"details": "Verification code sent.", "success": True}
+
+  try:
+    was_delete = UserDeleteService.delete_user(user, verification_code)
+    if not was_delete:
+      return 400, {"details": "Invalid verification code.", "success": False}
+  except Exception:
+    return 500, {
+      "details": "Something went wrong during user deletion process.",
+      "success": False,
+    }
+
+  return 200, {"details": "User account deleted successfully.", "success": True}

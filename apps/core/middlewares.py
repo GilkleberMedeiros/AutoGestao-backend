@@ -234,6 +234,7 @@ class ValidEmailPermissionMiddleware(BaseMiddleware, MatchRouteMiddlewareMixin):
 
   _routes = [
     r"^/?api/test-routes/middlewares/valid-email-permission-middleware/?$",  # Test route to test this middleware.
+    RouteSpecification(path_pattern=r"^/?api/users/?$", http_methods=["DELETE"]),
     r"^/?api/clients/?$",
     r"^/?api/clients/[a-zA-Z0-9-]+/?$",  # Bind to sub-routes that needs id on path.
     r"^/?api/clients/[a-zA-Z0-9-]+/emails/?$",
