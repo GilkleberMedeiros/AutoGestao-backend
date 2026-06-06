@@ -7,19 +7,19 @@ from unittest.mock import MagicMock, patch
 from datetime import date
 
 from apps.finances.services.dashboard import DashboardService
-from apps.finances.schemas.dashboard import DashboardPeriodFilter
+from apps.finances.services.dashboard.dto import PeriodFilterDTO
 
 
 class TestDashboardService_IncomeProjectsComposition(TestCase):
-  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
+  @patch(
+    "apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics"
+  )
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_income_projects_composition_calculation_logic(
     self, mock_projects_qs, mock_calc_metrics
   ):
     user = MagicMock()
-    period = DashboardPeriodFilter(
-      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
-    )
+    period = PeriodFilterDTO(start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
 
     p1 = MagicMock()
     p2 = MagicMock()
@@ -58,15 +58,15 @@ class TestDashboardService_IncomeProjectsComposition(TestCase):
     self.assertEqual(composition[1]["profit"], 140.0)
     self.assertEqual(composition[1]["percentage"], 70.0)
 
-  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
+  @patch(
+    "apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics"
+  )
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_income_projects_composition_excludes_zero_or_negative_profit(
     self, mock_projects_qs, mock_calc_metrics
   ):
     user = MagicMock()
-    period = DashboardPeriodFilter(
-      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
-    )
+    period = PeriodFilterDTO(start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
 
     p1 = MagicMock()
     p2 = MagicMock()
@@ -104,15 +104,15 @@ class TestDashboardService_IncomeProjectsComposition(TestCase):
     self.assertEqual(composition[0]["project"], p1)
     self.assertEqual(composition[0]["percentage"], 100.0)
 
-  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
+  @patch(
+    "apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics"
+  )
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_income_projects_composition_empty_projects(
     self, mock_projects_qs, mock_calc_metrics
   ):
     user = MagicMock()
-    period = DashboardPeriodFilter(
-      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
-    )
+    period = PeriodFilterDTO(start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
     mock_calc_metrics.return_value = []
 
     service = DashboardService(user, period, includes_open_projects=True)
@@ -121,15 +121,15 @@ class TestDashboardService_IncomeProjectsComposition(TestCase):
     self.assertEqual(composition, [])
     self.assertEqual(total_profit, 0.0)
 
-  @patch("apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics")
+  @patch(
+    "apps.finances.services.dashboard.DashboardService._calc_projects_base_metrics"
+  )
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_income_projects_composition_all_zero_or_negative_profit(
     self, mock_projects_qs, mock_calc_metrics
   ):
     user = MagicMock()
-    period = DashboardPeriodFilter(
-      start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)
-    )
+    period = PeriodFilterDTO(start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
 
     mock_calc_metrics.return_value = [
       {

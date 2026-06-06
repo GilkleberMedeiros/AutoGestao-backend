@@ -7,13 +7,13 @@ from unittest.mock import MagicMock, patch
 from datetime import date, datetime
 
 from apps.finances.services.dashboard import DashboardService
-from apps.finances.schemas.dashboard import DashboardPeriodFilter
+from apps.finances.services.dashboard.dto import PeriodFilterDTO
 
 
 class TestDashboardService_IncomeHistory(TestCase):
   def setUp(self):
     self.user = MagicMock()
-    self.period = DashboardPeriodFilter(
+    self.period = PeriodFilterDTO(
       start_date=date(2026, 1, 1), end_date=date(2026, 1, 2)
     )
 
@@ -102,8 +102,7 @@ class TestDashboardService_IncomeHistory(TestCase):
   def test_income_history_sorting(self, mock_projects_qs):
     # Ensure even if generated out of order (though generator is sequential),
     # the output is sorted.
-    self.period.start_date = date(2026, 1, 1)
-    self.period.end_date = date(2026, 1, 3)
+    period = PeriodFilterDTO(start_date=date(2026, 1, 1), end_date=date(2026, 1, 3))
 
     # We mock _date_range to yield dates out of order to test the sort
     with patch(
@@ -112,7 +111,7 @@ class TestDashboardService_IncomeHistory(TestCase):
       mock_range.return_value = [date(2026, 1, 3), date(2026, 1, 1), date(2026, 1, 2)]
       mock_projects_qs.return_value = []
 
-      service = DashboardService(self.user, self.period, True)
+      service = DashboardService(self.user, period, True)
       result = service.income_history(False)
 
       dates = [r["date"] for r in result]
@@ -120,8 +119,8 @@ class TestDashboardService_IncomeHistory(TestCase):
 
   @patch("apps.finances.services.dashboard.DashboardService._projects_qs")
   def test_income_history_empty_range(self, mock_projects_qs):
-    self.period.start_date, self.period.end_date = date(2026, 1, 2), date(2026, 1, 1)
+    period = PeriodFilterDTO(start_date=date(2026, 1, 2), end_date=date(2026, 1, 1))
     mock_projects_qs.return_value = []
 
-    service = DashboardService(self.user, self.period, True)
+    service = DashboardService(self.user, period, True)
     self.assertEqual(service.income_history(False), [])

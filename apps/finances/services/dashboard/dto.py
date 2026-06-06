@@ -1,6 +1,12 @@
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, NamedTuple
+from datetime import date
 
 from apps.projects_and_clients.models import Project
+
+
+class PeriodFilterDTO(NamedTuple):
+  start_date: date
+  end_date: date
 
 
 class FastViewsDTO(TypedDict):

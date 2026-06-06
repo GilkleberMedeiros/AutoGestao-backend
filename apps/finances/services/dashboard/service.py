@@ -3,14 +3,12 @@ from copy import copy
 from datetime import date, timedelta
 from django.db.models import QuerySet
 
-from apps.finances.schemas.dashboard import DashboardPeriodFilter
-
-
 from apps.finances.models import Movimentation
 from apps.projects_and_clients.models import Project
 from apps.users.models import User
 from .exceptions import InvalidRankingsCountError
 from .dto import (
+  PeriodFilterDTO,
   DashboardDTO,
   DashboardMetricsParamT,
   FastViewsDTO,
@@ -22,7 +20,7 @@ from .dto import (
 
 class DashboardService:
   def __init__(
-    self, user: User, period: DashboardPeriodFilter, includes_open_projects: bool
+    self, user: User, period: PeriodFilterDTO, includes_open_projects: bool
   ) -> None:
     """
     Initialize the DashboardService.
@@ -251,7 +249,7 @@ class DashboardService:
 
   @staticmethod
   def _projects_qs(
-    user: User, period: DashboardPeriodFilter, includes_open_projects: bool
+    user: User, period: PeriodFilterDTO, includes_open_projects: bool
   ) -> QuerySet[Project]:
     """
     Return a queryset of projects filtered by user, period range and

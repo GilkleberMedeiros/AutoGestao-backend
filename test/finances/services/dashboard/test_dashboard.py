@@ -7,13 +7,13 @@ from unittest.mock import MagicMock, patch
 from datetime import date
 
 from apps.finances.services.dashboard import DashboardService
-from apps.finances.schemas.dashboard import DashboardPeriodFilter
+from apps.finances.services.dashboard.dto import PeriodFilterDTO
 
 
 class TestDashboardService_Dashboard(TestCase):
   def setUp(self):
     self.user = MagicMock()
-    self.period = DashboardPeriodFilter(
+    self.period = PeriodFilterDTO(
       start_date=date(2026, 1, 1), end_date=date(2026, 1, 31)
     )
 
