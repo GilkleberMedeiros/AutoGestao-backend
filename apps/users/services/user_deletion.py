@@ -25,6 +25,7 @@ class UserDeleteService:
   warn_sms_template = settings.WARN_USER_DELETION_SMS_TEMPLATE
   template = settings.CONFIRM_USER_DELETION_EMAIL_TEMPLATE
   from_email = settings.DEFAULT_FROM_EMAIL
+  from_sms = settings.DEFAULT_FROM_SMS
   verification_token_lifetime = settings.USER_DELETION_VERIFICATION_TOKEN_LIFETIME
 
   @classmethod
@@ -94,6 +95,30 @@ class UserDeleteService:
       )
     except Exception:
       raise ExternalServiceError("Failed to send warn email.")
+
+  @classmethod
+  def send_warn_sms(
+    cls,
+    user: User,
+    *,
+    warn_sms_template: str = None,
+    from_sms: str = None,
+  ) -> None:
+    """
+    Send warn sms to user sms.
+    """
+    if not warn_sms_template:
+      warn_sms_template = cls.warn_sms_template
+    if not from_sms:
+      from_sms = cls.from_sms
+
+    try:
+      user.sms_user(
+        render_to_string(warn_sms_template, {}),
+        from_sms=from_sms,
+      )
+    except Exception:
+      raise ExternalServiceError("Failed to send warn sms.")
 
   @staticmethod
   def format_token(token: str) -> str:

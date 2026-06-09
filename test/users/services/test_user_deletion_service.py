@@ -88,6 +88,30 @@ class UserDeleteServiceTestCase__SendWarnEmail(TestCase):
       UserDeleteService.send_warn_email(user_mock)
 
 
+class UserDeleteServiceTestCase__SendWarnSMS(TestCase):
+  @patch("apps.users.services.user_deletion.render_to_string")
+  def test_send_warn_sms_success(self, mock_render):
+    user_mock = MagicMock()
+    mock_render.return_value = "rendered warn content"
+
+    UserDeleteService.send_warn_sms(user_mock)
+
+    mock_render.assert_called_once_with(UserDeleteService.warn_sms_template, {})
+    user_mock.sms_user.assert_called_once_with(
+      "rendered warn content",
+      from_sms=UserDeleteService.from_sms,
+    )
+
+  @patch("apps.users.services.user_deletion.render_to_string")
+  def test_send_warn_sms_failure(self, mock_render):
+    user_mock = MagicMock()
+    user_mock.sms_user.side_effect = Exception("SMS error")
+    mock_render.return_value = "rendered warn content"
+
+    with self.assertRaises(ExternalServiceError):
+      UserDeleteService.send_warn_sms(user_mock)
+
+
 class UserDeleteServiceTestCase__FormatToken(TestCase):
   def test_format_token(self):
     formatted = UserDeleteService.format_token("abc")
