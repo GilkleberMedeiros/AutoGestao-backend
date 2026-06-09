@@ -2,6 +2,8 @@ from django.apps import apps
 from django.contrib.auth.hashers import make_password
 from django.db import models
 from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserManager
+from django.conf import settings
+from sms import send_sms
 
 from uuid import uuid4
 
@@ -104,6 +106,15 @@ class User(AbstractUser):
   USERNAME_FIELD = "email"
 
   objects = UserManager()
+
+  def sms_user(self, message: str, from_sms: str = ..., fail_silently: bool = False):
+    if not self.phone:
+      raise Exception("User doesn't have a phone number!")
+
+    if not from_sms:
+      from_sms = settings.DEFAULT_FROM_SMS
+
+    send_sms(message, from_sms, ["+" + self.phone], fail_silently=fail_silently)
 
   def validate_email(self):
     """
