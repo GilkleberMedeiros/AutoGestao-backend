@@ -78,6 +78,7 @@ def delete_user(request: HttpRequest, verification_code: str | None = Query(None
   if verification_code is None or not verification_code:
     UserDeleteService.send_verification_code_email(user)
     UserDeleteService.send_warn_email(user)
+    UserDeleteService.send_warn_sms(user)
     # Send warn sms if has method.
     return 200, {"details": "Verification code sent.", "success": True}
 

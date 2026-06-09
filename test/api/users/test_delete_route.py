@@ -43,6 +43,7 @@ class UserDeleteRouteTestCase(AuthenticatedTestCase):
 
     mock_delete_service.send_verification_code_email.assert_called_once_with(self.user)
     mock_delete_service.send_warn_email.assert_called_once_with(self.user)
+    mock_delete_service.send_warn_sms.assert_called_once_with(self.user)
     mock_delete_service.delete_user.assert_not_called()
 
   def test_request_deletion_unauthenticated_returns_401(self):
@@ -77,6 +78,7 @@ class UserDeleteRouteTestCase(AuthenticatedTestCase):
 
     mock_delete_service.delete_user.assert_called_once_with(self.user, "12345678")
     mock_delete_service.send_warn_email.assert_not_called()
+    mock_delete_service.send_warn_sms.assert_not_called()
     mock_delete_service.send_verification_code_email.assert_not_called()
 
   @patch("apps.users.routes.UserDeleteService")
@@ -98,13 +100,15 @@ class UserDeleteRouteTestCase(AuthenticatedTestCase):
     mock_delete_service.delete_user.assert_called_once_with(self.user, "00000000")
     mock_delete_service.send_verification_code_email.assert_not_called()
     mock_delete_service.send_warn_email.assert_not_called()
+    mock_delete_service.send_warn_sms.assert_not_called()
 
 
 class UserDeleteRouteTestCase__TestE2E_Success(UserDeleteRouteTestCase):
+  @patch("apps.users.services.user_deletion.User.sms_user")
   @patch("apps.users.services.user_deletion.User.email_user")
   @patch("apps.users.routes.UserDeleteService._generate_token")
   def test_entire_deletion_flow_end_to_end_success(
-    self, mock_code_gen: MagicMock, mock_email_user: MagicMock
+    self, mock_code_gen: MagicMock, mock_email_user: MagicMock, mock_sms_user: MagicMock
   ):
     verification_code = "01010101"
     mock_code_gen.return_value = verification_code
@@ -129,10 +133,11 @@ class UserDeleteRouteTestCase__TestE2E_Success(UserDeleteRouteTestCase):
 
 
 class UserDeleteRouteTestCase__TestE2E_InvalidCode(UserDeleteRouteTestCase):
+  @patch("apps.users.services.user_deletion.User.sms_user")
   @patch("apps.users.services.user_deletion.User.email_user")
   @patch("apps.users.routes.UserDeleteService._generate_token")
   def test_entire_deletion_flow_end_to_end_invalid_code(
-    self, mock_code_gen: MagicMock, mock_email_user: MagicMock
+    self, mock_code_gen: MagicMock, mock_email_user: MagicMock, mock_sms_user: MagicMock
   ):
     verification_code = "01010101"
     mock_code_gen.return_value = verification_code
