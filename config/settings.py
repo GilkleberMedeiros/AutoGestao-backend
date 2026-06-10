@@ -197,6 +197,8 @@ DEFAULT_FROM_SMS = _DEFAULT_FROM_SMS
 # Contacts Info Validation Settings
 EMAIL_VALIDATION_TOKEN_LIFETIME = timedelta(minutes=30)
 EMAIL_VALIDATION_TEMPLATE = "emails/validation.html"
+PHONE_VALIDATION_TOKEN_LIFETIME = timedelta(minutes=30)
+PHONE_VALIDATION_SMS_TEMPLATE = "sms/validation.txt"
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
