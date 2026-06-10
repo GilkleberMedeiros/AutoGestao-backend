@@ -123,5 +123,12 @@ class User(AbstractUser):
     self.is_email_valid = True
     self.save()
 
+  def validate_phone(self):
+    """
+    Update is_phone_valid field to True.
+    """
+    self.is_phone_valid = True
+    self.save()
+
   def __str__(self):
     return self.email
