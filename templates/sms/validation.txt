@@ -1,0 +1,10 @@
+Olá {{ user_name | default:"usuário" }},
+
+Seu código de verificação é: {{ validation_token }}
+
+Este código expira em {{ validation_token_timeout }} minutos.
+
+Se você não solicitou este código, ignore esta mensagem.
+
+Atenciosamente,
+Equipe AutoGestão
