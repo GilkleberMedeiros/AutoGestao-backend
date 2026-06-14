@@ -5,10 +5,9 @@ from apps.projects_and_clients.schemas.task import (
   UpdateTaskReq,
   PartialUpdateTaskReq,
 )
-from apps.projects_and_clients.models import Task, Project
+from apps.projects_and_clients.models import Task, Project, MovGroupProjectRelation
 from apps.finances.services.movimentation import MovimentationService
 from apps.finances.schemas.movimentation import CreateMovimentationReq
-from apps.finances.models import MovGroup
 from apps.users.models import User
 
 from apps.core.exceptions import ResourceNotFoundError
@@ -35,7 +34,14 @@ class TaskService:
 
     # if data comes with movimentation create data.
     if data.get("movimentation", None):
-      movgroup = MovGroup.objects.filter(related_to=project_id, user=user).first()
+      mov_relation = (
+        MovGroupProjectRelation.objects.filter(
+          project_id=project_id, mov_group__user=user
+        )
+        .select_related("mov_group")
+        .first()
+      )
+      movgroup = mov_relation.mov_group if mov_relation else None
       if not movgroup:
         raise MovGroupNotFoundError(
           "Movimentation Group not found for create Movimentation associated Task."
@@ -60,9 +66,9 @@ class TaskService:
     user: User,
     project_id: str,
   ):
-    tasks = Task.objects.filter(
-      project=project_id, project__user=user
-    ).select_related("movimentation")
+    tasks = Task.objects.filter(project=project_id, project__user=user).select_related(
+      "movimentation"
+    )
 
     return tasks
 

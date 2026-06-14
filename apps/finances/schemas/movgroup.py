@@ -9,8 +9,6 @@ class MovGroupSchema(ModelSchema):
       "id",
       "name",
       "description",
-      "related_to",
-      "relation",
       "created_at",
       "updated_at",
     ]

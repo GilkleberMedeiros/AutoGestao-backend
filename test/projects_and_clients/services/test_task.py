@@ -54,18 +54,20 @@ class TestTaskService_Create(TestCase):
 
   @patch("apps.projects_and_clients.services.task.Task")
   @patch("apps.projects_and_clients.services.task.MovimentationService")
-  @patch("apps.projects_and_clients.services.task.MovGroup")
+  @patch("apps.projects_and_clients.services.task.MovGroupProjectRelation")
   @patch("apps.projects_and_clients.services.task.Project")
   def test_create_task_with_movimentation(
-    self, MockProject, MockMovGroup, MockMovService, MockTask
+    self, MockProject, MockRelation, MockMovService, MockTask
   ):
     user = MagicMock()
     project_id = str(uuid.uuid4())
     project_mock = MagicMock()
     MockProject.objects.filter.return_value.first.return_value = project_mock
 
+    mov_relation_mock = MagicMock()
     movgroup_mock = MagicMock()
-    MockMovGroup.objects.filter.return_value.first.return_value = movgroup_mock
+    mov_relation_mock.mov_group = movgroup_mock
+    MockRelation.objects.filter.return_value.select_related.return_value.first.return_value = mov_relation_mock
 
     movimentation_mock = MagicMock()
     MockMovService.create.return_value = movimentation_mock
@@ -80,8 +82,8 @@ class TestTaskService_Create(TestCase):
 
     result = TaskService.create(user, project_id, data)
 
-    MockMovGroup.objects.filter.assert_called_once_with(
-      related_to=project_id, user=user
+    MockRelation.objects.filter.assert_called_once_with(
+      project_id=project_id, mov_group__user=user
     )
     MockMovService.create.assert_called_once()
     MockTask.objects.create.assert_called_once()
@@ -92,30 +94,30 @@ class TestTaskService_Create(TestCase):
 
   @patch("apps.projects_and_clients.services.task.Task")
   @patch("apps.projects_and_clients.services.task.MovimentationService")
-  @patch("apps.projects_and_clients.services.task.MovGroup")
+  @patch("apps.projects_and_clients.services.task.MovGroupProjectRelation")
   @patch("apps.projects_and_clients.services.task.Project")
   def test_create_task_doesnot_create_movimentation_if_no_movimentation_data_provided(
-    self, MockProject, MockMovGroup, MockMovService, MockTask
+    self, MockProject, MockRelation, MockMovService, MockTask
   ):
     user = MagicMock()
     project_id = str(uuid.uuid4())
     MockProject.objects.filter.return_value.first.return_value = MagicMock()
-    MockMovGroup.objects.filter.return_value.first.return_value = MagicMock()
+    MockRelation.objects.filter.return_value.select_related.return_value.first.return_value = MagicMock()
     MockTask.objects.create.return_value = MagicMock()
 
     data = CreateTaskReq(name="Task No Mov", do_at=timezone.now(), movimentation=None)
     TaskService.create(user, project_id, data)
 
-    MockMovGroup.objects.filter.assert_not_called()
+    MockRelation.objects.filter.assert_not_called()
     MockMovService.create.assert_not_called()
 
-  @patch("apps.projects_and_clients.services.task.MovGroup")
+  @patch("apps.projects_and_clients.services.task.MovGroupProjectRelation")
   @patch("apps.projects_and_clients.services.task.Project")
-  def test_create_task_movgroup_not_found(self, MockProject, MockMovGroup):
+  def test_create_task_movgroup_not_found(self, MockProject, MockRelation):
     user = MagicMock()
     project_id = str(uuid.uuid4())
     MockProject.objects.filter.return_value.first.return_value = MagicMock()
-    MockMovGroup.objects.filter.return_value.first.return_value = None
+    MockRelation.objects.filter.return_value.select_related.return_value.first.return_value = None
 
     mov_data = {"amount": 100.0, "balance": "+"}
     data = CreateTaskReq(name="Task", do_at=timezone.now(), movimentation=mov_data)

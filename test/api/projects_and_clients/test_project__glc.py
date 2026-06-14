@@ -213,7 +213,7 @@ class ProjectsRoute_Create(BaseProjectTestCase):
     proj_id = res_data["id"]
 
     # Verify if the movimentation group was created and it's related to the project
-    mov_group_list = MovGroup.objects.filter(related_to=proj_id, relation="PROJECT")
+    mov_group_list = MovGroup.objects.filter(movgroupprojectrelation__project_id=proj_id)
     self.assertEqual(mov_group_list.count(), 1)
     mov_group_obj = mov_group_list.first()
     self.assertEqual(mov_group_obj.user.id, self.user.id)

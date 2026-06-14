@@ -228,7 +228,7 @@ class DashboardService:
       # Get personal finances profit in the period range separated by full date (YYYY-MM-DD).
       movimentations = Movimentation.objects.filter(
         mov_group__user=user,
-        mov_group__relation="NORELATION",
+        mov_group__movgroupprojectrelation__isnull=True,
         movemented_at__date__range=(period.start_date, period.end_date),
       )
 

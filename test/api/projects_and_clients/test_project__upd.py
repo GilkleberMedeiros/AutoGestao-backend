@@ -238,7 +238,7 @@ class ProjectsRoute_Close_Reopen(BaseProjectTestCase):
       status="OPEN",
     )
     movimentation1 = Movimentation.objects.create(
-      mov_group=MovGroup.objects.filter(related_to=project.id).first(),
+      mov_group=MovGroup.objects.filter(movgroupprojectrelation__project_id=project.id).first(),
       amount=100.00,
       balance="+",
       reason="Test",

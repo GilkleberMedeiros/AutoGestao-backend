@@ -4,7 +4,7 @@ from django.db.models.query import QuerySet
 import uuid
 
 from apps.users.models import User
-from apps.finances.models import Movimentation
+from apps.finances.models import Movimentation, MovGroup
 from apps.users.field_validators.phone import PhoneValidator
 
 
@@ -241,3 +241,10 @@ class Task(models.Model):
 
   def __str__(self):
     return self.name
+
+
+class MovGroupProjectRelation(models.Model):
+  mov_group = models.ForeignKey(MovGroup, db_index=True, on_delete=models.CASCADE)
+  project = models.ForeignKey(Project, db_index=True, on_delete=models.CASCADE)
+
+  pk = models.CompositePrimaryKey("mov_group", "project")

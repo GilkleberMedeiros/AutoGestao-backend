@@ -40,8 +40,9 @@ class TestProjectSignal__CreateMovGroup(unittest.TestCase):
     # MovGroup should not be instantiated when created=False
     mock_mov_group_class.assert_not_called()
 
+  @patch("apps.finances.signals.MovGroupProjectRelation")
   @patch("apps.finances.signals.MovGroup")
-  def test_movgroup_instantiated_saved_and_bound_to_project(self, mock_mov_group_class):
+  def test_movgroup_instantiated_saved_and_bound_to_project(self, mock_mov_group_class, mock_relation_class):
     # Arrange
     mock_user = User(id=1)
     # Use the real Project model class but don't save it to the DB
@@ -55,13 +56,16 @@ class TestProjectSignal__CreateMovGroup(unittest.TestCase):
     post_save.send(sender=Project, instance=project_instance, created=True)
 
     # Assert
-    # Check if the class was instantiated with correct fields, especially related_to and relation
+    # Check if the class was instantiated with correct fields
     mock_mov_group_class.assert_called_once_with(
       user=project_instance.user,
       name="Grupo de Finanças Projeto - My Test Project...",
       description="Grupo de Finanças dedicado à registrar as finanças do Projeto - My Test Project",
-      related_to=project_instance.id,
-      relation="PROJECT",
     )
     # Check if the save method was called
     mock_mov_group_instance.save.assert_called_once()
+    
+    mock_relation_class.objects.create.assert_called_once_with(
+      mov_group=mock_mov_group_instance,
+      project=project_instance,
+    )

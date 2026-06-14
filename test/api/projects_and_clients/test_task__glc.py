@@ -47,7 +47,7 @@ class BaseTaskTestCase(AuthenticatedTestCase):
     )
 
     cls.mov_group_obj = MovGroup.objects.filter(
-      related_to=cls.project_obj.id,
+      movgroupprojectrelation__project_id=cls.project_obj.id,
       user=cls.user,
     ).first()
     if not cls.mov_group_obj:
@@ -256,13 +256,16 @@ class TasksRoute_Create(BaseTaskTestCase):
   def test_create_task_with_movimentation_success(self):
     token = self._get_valid_token()
     # Ensure MovGroup exists for this project (in case it was deleted by another test)
-    MovGroup.objects.get_or_create(
-      related_to=self.project_obj.id,
+    mov_group, _ = MovGroup.objects.get_or_create(
       user=self.user,
       defaults={
         "name": f"Finance Group for {self.project_obj.id}",
-        "relation": "PROJECT",
       },
+    )
+    from apps.projects_and_clients.models import MovGroupProjectRelation
+    MovGroupProjectRelation.objects.get_or_create(
+      mov_group=mov_group,
+      project=self.project_obj,
     )
 
     data = {
@@ -289,7 +292,7 @@ class TasksRoute_Create(BaseTaskTestCase):
   def test_create_task_movgroup_not_found_returns_404(self):
     token = self._get_valid_token()
     # Delete the automatically created MovGroup for this project
-    MovGroup.objects.filter(related_to=self.project_obj.id).delete()
+    MovGroup.objects.filter(movgroupprojectrelation__project_id=self.project_obj.id).delete()
 
     data = {
       "name": "Task with Movimentation",

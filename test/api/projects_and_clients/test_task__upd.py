@@ -232,12 +232,15 @@ class TasksRoute_Delete(BaseTaskTestCase):
     token = self._get_valid_token()
     # Create a task with movimentation
     mov_group, _ = MovGroup.objects.get_or_create(
-      related_to=self.project_obj.id,
       user=self.user,
       defaults={
         "name": f"Finance Group for {self.project_obj.id}",
-        "relation": "PROJECT",
       },
+    )
+    from apps.projects_and_clients.models import MovGroupProjectRelation
+    MovGroupProjectRelation.objects.get_or_create(
+      mov_group=mov_group,
+      project=self.project_obj,
     )
     movimentation = Movimentation.objects.create(
       mov_group=mov_group, amount=50.0, balance="-", reason="test delete"

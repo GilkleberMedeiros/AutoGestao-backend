@@ -8,20 +8,10 @@ import uuid
 
 # Create your models here.
 class MovGroup(models.Model):
-  RELATION_CHOICES = [
-    ("NORELATION", "No relation, personal only"),  # Means personal finances data
-    ("PROJECT", "Project Related"),  # Means project related finances data
-  ]
-
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
   user = models.ForeignKey(User, on_delete=models.CASCADE)
   name = models.CharField(max_length=127)
   description = models.TextField(max_length=512, blank=True, null=True)
-
-  related_to = models.UUIDField(null=True, blank=True, db_index=True)
-  relation = models.CharField(
-    max_length=22, choices=RELATION_CHOICES, default="NORELATION", editable=False
-  )
 
   created_at = models.DateTimeField(auto_now_add=True)
   updated_at = models.DateTimeField(auto_now=True)

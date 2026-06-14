@@ -11,11 +11,8 @@ class DashboardIncomeHistoryRoute_Get(BaseDashboardTestCase):
     super().setUp()
 
     self.client_model = Client.objects.create(user=self.user, name="Test Client")
-    self.project_mov_group = MovGroup.objects.create(
-      user=self.user, name="Project Group", relation="PROJECT"
-    )
     self.personal_mov_group = MovGroup.objects.create(
-      user=self.user, name="Personal Group", relation="NORELATION"
+      user=self.user, name="Personal Group"
     )
 
     self.today = timezone.now().date()
@@ -34,7 +31,7 @@ class DashboardIncomeHistoryRoute_Get(BaseDashboardTestCase):
       project=self.project_1, name="Task 1", do_at=timezone.now()
     )
     mov1 = Movimentation.objects.create(
-      mov_group=self.project_mov_group,
+      mov_group=self.project_1.movgroupprojectrelation_set.first().mov_group,
       amount=1000.0,
       balance="+",
       reason="Gain",

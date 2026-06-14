@@ -65,7 +65,7 @@ class TestDashboardService_IncomeHistory(TestCase):
 
     mock_mov_filter.assert_called_once_with(
       mov_group__user=self.user,
-      mov_group__relation="NORELATION",
+      mov_group__movgroupprojectrelation__isnull=True,
       movemented_at__date__range=(self.period.start_date, self.period.end_date),
     )
 
