@@ -1,6 +1,8 @@
 from ninja import Router, Query
+from django.http import HttpRequest, HttpResponse
 
 from apps.core.schemas.response import BaseAPIResponse
+from apps.core.utils.cache import cache_route
 from apps.finances.schemas.dashboard import (
   DashboardFilter,
   ProjectsRankingsFilter,
@@ -19,12 +21,16 @@ from apps.finances.services.dashboard.dto import (
 router = Router()
 
 
+@cache_route(ttl=60 * 15)  # 15 minutes
 @router.get(
   "/fast-views",
   response={200: FastViewsDTO, 401: BaseAPIResponse},
 )
-def fast_views(request, filters: DashboardFilter = Query(...)):
+def fast_views(
+  request: HttpRequest, response: HttpResponse, filters: DashboardFilter = Query(...)
+):
   if not request.user.is_authenticated:
+    response.headers["Cache-Control"] = "no-store"  # Don't cache error responses
     return 401, {"details": "Unauthenticated", "success": False}
 
   service = DashboardService(
@@ -36,12 +42,18 @@ def fast_views(request, filters: DashboardFilter = Query(...)):
   return 200, service.fast_views()
 
 
+@cache_route(ttl=60 * 15)
 @router.get(
   "/projects-rankings",
   response={200: ProjectsRankingsRes, 401: BaseAPIResponse},
 )
-def projects_rankings(request, filters: ProjectsRankingsFilter = Query(...)):
+def projects_rankings(
+  request: HttpRequest,
+  response: HttpResponse,
+  filters: ProjectsRankingsFilter = Query(...),
+):
   if not request.user.is_authenticated:
+    response.headers["Cache-Control"] = "no-store"
     return 401, {"details": "Unauthenticated", "success": False}
 
   service = DashboardService(
@@ -53,12 +65,16 @@ def projects_rankings(request, filters: ProjectsRankingsFilter = Query(...)):
   return 200, service.projects_rankings(rankings_count=filters.rankings_count)
 
 
+@cache_route(ttl=60 * 15)
 @router.get(
   "/income-projects-composition",
   response={200: IncomeProjectsCompositionRes, 401: BaseAPIResponse},
 )
-def income_projects_composition(request, filters: DashboardFilter = Query(...)):
+def income_projects_composition(
+  request: HttpRequest, response: HttpResponse, filters: DashboardFilter = Query(...)
+):
   if not request.user.is_authenticated:
+    response.headers["Cache-Control"] = "no-store"
     return 401, {"details": "Unauthenticated", "success": False}
 
   service = DashboardService(
@@ -75,12 +91,18 @@ def income_projects_composition(request, filters: DashboardFilter = Query(...)):
   }
 
 
+@cache_route(ttl=60 * 15)
 @router.get(
   "/income-history",
   response={200: IncomeHistoryDTO, 401: BaseAPIResponse},
 )
-def income_history(request, filters: IncomeHistoryFilter = Query(...)):
+def income_history(
+  request: HttpRequest,
+  response: HttpResponse,
+  filters: IncomeHistoryFilter = Query(...),
+):
   if not request.user.is_authenticated:
+    response.headers["Cache-Control"] = "no-store"
     return 401, {"details": "Unauthenticated", "success": False}
 
   service = DashboardService(
@@ -94,12 +116,18 @@ def income_history(request, filters: IncomeHistoryFilter = Query(...)):
   )
 
 
+@cache_route(ttl=60 * 15)
 @router.get(
   "/",
   response={200: DashboardRes, 401: BaseAPIResponse},
 )
-def dashboard(request, filters: DashboardRouteFilter = Query(...)):
+def dashboard(
+  request: HttpRequest,
+  response: HttpResponse,
+  filters: DashboardRouteFilter = Query(...),
+):
   if not request.user.is_authenticated:
+    response.headers["Cache-Control"] = "no-store"
     return 401, {"details": "Unauthenticated", "success": False}
 
   service = DashboardService(
