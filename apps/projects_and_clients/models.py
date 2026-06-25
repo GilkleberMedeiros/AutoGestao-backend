@@ -12,8 +12,8 @@ class Client(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
   user = models.ForeignKey(User, on_delete=models.CASCADE)
   name = models.CharField(max_length=255)
-  # TODO: Add CPF validator to valid CPF format
-  cpf = models.CharField(max_length=14, null=True, blank=True)
+  # TODO: Add CPF/CNPJ validator to valid CPF/CNPJ format
+  cpf = models.CharField(max_length=21, null=True, blank=True)
 
   class Meta:
     constraints = [
