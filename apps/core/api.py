@@ -29,18 +29,51 @@ if settings.TESTING:
     "test-routes/utils/", router="apps.core.test_routes.route_utils.router"
   )
 
-api.add_router("users", router="apps.users.routes.router")
-api.add_router("users/auth/", router="apps.authentication.routes.auth.router")
-api.add_router("users/validate/", router="apps.authentication.routes.validate.router")
+api.add_router("users", router="apps.users.routes.router", tags=["Users"])
+api.add_router(
+  "users/auth/",
+  router="apps.authentication.routes.auth.router",
+  tags=["Authentication"],
+)
+api.add_router(
+  "users/validate/",
+  router="apps.authentication.routes.validate.router",
+  tags=["Validation"],
+)
 
-api.add_router("clients", router="apps.projects_and_clients.routes.client.router")
-api.add_router("clients", router="apps.projects_and_clients.routes.emails.router")
-api.add_router("clients", router="apps.projects_and_clients.routes.phones.router")
-api.add_router("projects", router="apps.projects_and_clients.routes.project.router")
-api.add_router("projects", router="apps.projects_and_clients.routes.task.router")
-api.add_router("finances/groups", router="apps.finances.routes.movgroup.router")
+api.add_router(
+  "clients", router="apps.projects_and_clients.routes.client.router", tags=["Clients"]
+)
+api.add_router(
+  "clients",
+  router="apps.projects_and_clients.routes.emails.router",
+  tags=["Client-Emails"],
+)
+api.add_router(
+  "clients",
+  router="apps.projects_and_clients.routes.phones.router",
+  tags=["Client-Phones"],
+)
+api.add_router(
+  "projects",
+  router="apps.projects_and_clients.routes.project.router",
+  tags=["Projects"],
+)
+api.add_router(
+  "projects", router="apps.projects_and_clients.routes.task.router", tags=["Tasks"]
+)
+api.add_router(
+  "finances/groups",
+  router="apps.finances.routes.movgroup.router",
+  tags=["Finances-Groups"],
+)
 api.add_router(
   "finances/groups/<str:movgroup_id>/movimentations",
   router="apps.finances.routes.movimentation.router",
+  tags=["Finances-Movimentations"],
 )
-api.add_router("finances/dashboard", router="apps.finances.routes.dashboard.router")
+api.add_router(
+  "finances/dashboard",
+  router="apps.finances.routes.dashboard.router",
+  tags=["Dashboard"],
+)
