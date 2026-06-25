@@ -25,6 +25,7 @@ description: "Task list template for feature implementation"
 - **Web app**: `backend/src/`, `frontend/src/`
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
 - Paths shown below assume single project - adjust based on plan.md structure
+- **AutoGestão backend**: mirror existing app layout (`apps/<domain>/models.py`, `services/`, `routes/`, `schemas/`; tests under `test/<domain>/` and `test/api/`) per constitution Principle VI
 
 <!--
   ============================================================================

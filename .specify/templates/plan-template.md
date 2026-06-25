@@ -40,6 +40,12 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
+Verify compliance with `.specify/memory/constitution.md`, including:
+- Domain-led modular services (models / services / routes separation)
+- Explicit API and data contracts
+- Test discipline (unit + end-to-end where applicable)
+- Established project conventions (golden rule): new code matches existing organization patterns
+
 [Gates determined based on constitution file]
 
 ## Project Structure
