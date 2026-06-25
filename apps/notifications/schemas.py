@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -14,6 +15,39 @@ class RelationSchema(Schema):
   project_id: Optional[UUID] = None
   client_id: Optional[UUID] = None
   task_id: Optional[UUID] = None
+
+
+class RelationInputSchema(Schema):
+  """Input payload for notification entity association on create/update."""
+
+  relation_type: str
+  project_id: Optional[UUID] = None
+  client_id: Optional[UUID] = None
+  task_id: Optional[UUID] = None
+
+
+class CreateNotificationReq(Schema):
+  """Request model for creating a notification via NotificationService."""
+
+  title: str
+  deliver_at: datetime
+  type: str
+  message: Optional[str] = None
+  read: bool = False
+  extra_fields: Optional[dict] = None
+  relation: Optional[RelationInputSchema] = None
+
+
+class PartialUpdateNotificationReq(Schema):
+  """Request model for partially updating a notification."""
+
+  title: Optional[str] = None
+  message: Optional[str] = None
+  read: Optional[bool] = None
+  deliver_at: Optional[datetime] = None
+  type: Optional[str] = None
+  extra_fields: Optional[dict] = None
+  relation: Optional[RelationInputSchema] = None
 
 
 class NotificationSchema(ModelSchema):
