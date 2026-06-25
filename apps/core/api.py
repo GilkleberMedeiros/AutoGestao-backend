@@ -77,3 +77,8 @@ api.add_router(
   router="apps.finances.routes.dashboard.router",
   tags=["Dashboard"],
 )
+api.add_router(
+  "notifications",
+  router="apps.notifications.routes.router",
+  tags=["Notifications"],
+)
