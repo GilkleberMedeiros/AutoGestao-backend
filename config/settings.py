@@ -92,6 +92,7 @@ INSTALLED_APPS = [
   "apps.authentication",
   "apps.projects_and_clients",
   "apps.finances",
+  "apps.notifications",
 ]
 
 MIDDLEWARE = [
