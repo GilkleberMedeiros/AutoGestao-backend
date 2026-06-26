@@ -5,10 +5,10 @@ import uuid
 
 class Notification(models.Model):
   class NotificationType:
-    SIMPLE = "SIMPLE"  # Simple Generic Purpose Notification
-    ASSOCIATED = "ASSOCIATED"  # Simple Notification associated with a specific entity (Project, Client, etc.)
-    DEADLINE = "DEADLINE"  # Specific purpose notification for Project deadlines
-    SPENT_LIMIT = "SPENT_LIMIT"  # Specific purpose notification for User personal finance spent limit
+    SIMPLE: str = "SIMPLE"  # Simple Generic Purpose Notification
+    ASSOCIATED: str = "ASSOCIATED"  # Simple Notification associated with a specific entity (Project, Client, etc.)
+    DEADLINE: str = "DEADLINE"  # Specific purpose notification for Project deadlines
+    SPENT_LIMIT: str = "SPENT_LIMIT"  # Specific purpose notification for User personal finance spent limit
 
   NOTIFICATION_TYPE_CHOICES = [
     (NotificationType.SIMPLE, "Simple"),
@@ -31,9 +31,9 @@ class Notification(models.Model):
 
 class NotificationRelation(models.Model):
   class RelationType:
-    PROJECT = "PROJECT"
-    CLIENT = "CLIENT"
-    TASK = "TASK"
+    PROJECT: str = "PROJECT"
+    CLIENT: str = "CLIENT"
+    TASK: str = "TASK"
 
   RELATION_TYPE_CHOICES = [
     (RelationType.PROJECT, "Project"),
