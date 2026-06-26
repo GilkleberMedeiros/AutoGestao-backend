@@ -1,4 +1,6 @@
-from datetime import datetime, timedelta
+from django.utils.timezone import now as tznow
+
+from datetime import timedelta
 from uuid import uuid4
 
 from apps.notifications.models import Notification, NotificationRelation
@@ -36,7 +38,7 @@ class BaseNotificationSyncTestCase(AuthenticatedTestCase):
       is_email_valid=True,
     )
 
-    base_time = datetime.now()
+    base_time = tznow()
     cls.user_notifications = []
     for i in range(5):
       notif = Notification.objects.create(
@@ -49,9 +51,7 @@ class BaseNotificationSyncTestCase(AuthenticatedTestCase):
       )
       cls.user_notifications.append(notif)
 
-    client = Client.objects.create(
-      user=cls.user, name="Test Client", cpf="12345678901"
-    )
+    client = Client.objects.create(user=cls.user, name="Test Client", cpf="12345678901")
     cls.project = Project.objects.create(
       user=cls.user,
       client=client,
@@ -142,14 +142,10 @@ class NotificationSyncRoute__sync(BaseNotificationSyncTestCase):
     self.assertEqual(response.status_code, 200)
     data = response.json()
 
-    project_notif = next(
-      (n for n in data["notifications"] if n.get("relation")), None
-    )
+    project_notif = next((n for n in data["notifications"] if n.get("relation")), None)
     self.assertIsNotNone(project_notif)
     self.assertEqual(project_notif["relation"]["relation_type"], "PROJECT")
-    self.assertEqual(
-      project_notif["relation"]["project_id"], str(self.project.id)
-    )
+    self.assertEqual(project_notif["relation"]["project_id"], str(self.project.id))
 
   def test_without_auth_returns_401(self):
     response = self._post_sync({"known_notification_ids": []}, headers={})
@@ -207,7 +203,7 @@ class NotificationSyncRoute__sync(BaseNotificationSyncTestCase):
       title="To Delete",
       message="Temporary notification",
       read=False,
-      deliver_at=datetime.now(),
+      deliver_at=tznow(),
       type="SIMPLE",
     )
 

@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from uuid import uuid4
 
 from django.test import TestCase
+from django.utils.timezone import now as tznow
 
 from apps.core.exceptions import BusinessRuleError, ResourceNotFoundError
 from apps.notifications.models import Notification, NotificationRelation
@@ -44,7 +45,7 @@ class BaseNotificationServiceTestCase(TestCase):
       labor_fee=50.00,
       status="OPEN",
     )
-    cls.base_time = datetime.now()
+    cls.base_time = tznow()
 
 
 class TestNotificationService__sync(BaseNotificationServiceTestCase):
@@ -105,7 +106,7 @@ class TestNotificationService__sync(BaseNotificationServiceTestCase):
       title="Other User Notification",
       message="Should not appear",
       read=False,
-      deliver_at=datetime.now(),
+      deliver_at=tznow(),
       type="SIMPLE",
     )
 

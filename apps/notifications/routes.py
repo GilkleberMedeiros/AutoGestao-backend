@@ -1,8 +1,7 @@
-from typing import Optional
 from uuid import UUID
 
 from django.http import HttpRequest
-from ninja import Router
+from ninja import Router, Body
 
 from apps.core.schemas.response import BaseAPIResponse
 
@@ -18,17 +17,17 @@ router = Router()
   summary="Synchronize notifications",
   description="Filters and returns notifications not already known by the client",
 )
-def sync(request: HttpRequest, body: SyncRequestSchema):
+def sync(request: HttpRequest, body: SyncRequestSchema = Body(...)):
   """
   Retrieve filtered notifications for authenticated user.
 
   Endpoint: POST /notifications/sync
-  Authentication: Required (Django auth)
+  Authentication: Required
   Response: List of notifications excluding known IDs, ordered by delivery time
 
   Args:
       request: HTTP request with authenticated user
-      payload: SyncRequestSchema with optional known_notification_ids
+      body: SyncRequestSchema with optional known_notification_ids
 
   Returns:
       SyncResponseSchema with filtered notifications
@@ -51,9 +50,7 @@ def sync(request: HttpRequest, body: SyncRequestSchema):
           "deliver_at": notification.deliver_at,
           "type": notification.type,
           "extra_fields": notification.extra_fields,
-          "relation": _serialize_relation(
-            notification.notificationrelation_set.first()
-          ),
+          "relation": notification.notificationrelation_set.first(),
         }
         for notification in notifications
       ]
@@ -65,16 +62,3 @@ def sync(request: HttpRequest, body: SyncRequestSchema):
     }
   except Exception:
     return 500, {"details": "Unknown error occurred", "success": False}
-
-
-def _serialize_relation(relation) -> Optional[dict]:
-  """Serialize NotificationRelation to response format."""
-  if not relation:
-    return None
-
-  return {
-    "relation_type": relation.relation_type,
-    "project_id": relation.project_id,
-    "client_id": relation.client_id,
-    "task_id": relation.task_id,
-  }
