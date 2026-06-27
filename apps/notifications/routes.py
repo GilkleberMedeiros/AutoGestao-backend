@@ -72,6 +72,48 @@ def sync(request: HttpRequest, body: SyncRequestSchema = Body(...)):
 
 
 @router.post(
+  "/read/{notification_id}",
+  response={200: NotificationSchema, 404: BaseAPIResponse, 400: BaseAPIResponse, 500: BaseAPIResponse},
+  summary="Mark a notification as read, can't be undone",
+)
+def read_notification(request: HttpRequest, notification_id: str):
+  """
+  Mark a notification as read for the authenticated user.
+
+  Endpoint: POST /notifications/read/{notification_id}
+  Authentication: Required
+
+  Args:
+      request: HTTP request with authenticated user
+      notification_id: ID of the notification to mark as read
+
+  Returns:
+      NotificationDTO with updated notification details
+
+  Raises:
+      ResourceNotFoundError: If the notification does not exist for the user
+  """
+  try:
+    updated_notification = NotificationService.read(request.user, notification_id)
+    return {
+      "id": updated_notification.id,
+      "title": updated_notification.title,
+      "message": updated_notification.message,
+      "read": updated_notification.read,
+      "deliver_at": updated_notification.deliver_at,
+      "type": updated_notification.type,
+      "extra_fields": updated_notification.extra_fields,
+      "relation": updated_notification.notificationrelation_set.first(),
+    }
+  except ResourceNotFoundError as e:
+    return 404, {"details": str(e), "success": False}
+  except AppError as e:
+    return 400, {"details": str(e), "success": False}
+  except Exception:
+    return 500, {"details": "Unknown error occurred", "success": False}
+
+
+@router.post(
   path="",
   response={
     201: NotificationSchema,
