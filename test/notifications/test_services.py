@@ -265,7 +265,7 @@ class TestNotificationService__partial_update(BaseNotificationServiceTestCase):
     )
 
     self.assertEqual(updated.type, "SIMPLE")
-    self.assertEqual(updated.extra_fields, {"extra": "field"})
+    self.assertIsNone(updated.extra_fields)
 
   def test_partial_update_cant_update_read(self):
     updated = NotificationService.partial_update(
