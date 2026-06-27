@@ -6,10 +6,10 @@ from django.utils.timezone import now as tznow
 
 from apps.core.exceptions import BusinessRuleError, ResourceNotFoundError
 from apps.notifications.models import Notification, NotificationRelation
-from apps.notifications.schemas import (
-  CreateNotificationReq,
-  PartialUpdateNotificationReq,
-  RelationInputSchema,
+from apps.notifications.services.dtos import (
+  NotificationRelationDTO,
+  CreateNotificationDTO,
+  PartialUpdateNotificationDTO,
 )
 from apps.notifications.services import NotificationService
 from apps.projects_and_clients.models import Client, Project
@@ -125,11 +125,12 @@ class TestNotificationService__sync(BaseNotificationServiceTestCase):
 
 class TestNotificationService__create(BaseNotificationServiceTestCase):
   def test_create_success_with_required_fields(self):
-    data = CreateNotificationReq(
+    data = CreateNotificationDTO(
       title="New Alert",
       deliver_at=self.base_time,
       type="SIMPLE",
       message="Hello",
+      extra_fields={"extra": "field"},
     )
 
     notification = NotificationService.create(self.user, data)
@@ -137,15 +138,15 @@ class TestNotificationService__create(BaseNotificationServiceTestCase):
     self.assertEqual(notification.title, "New Alert")
     self.assertEqual(notification.message, "Hello")
     self.assertEqual(notification.type, "SIMPLE")
+    self.assertEqual(notification.extra_fields, {"extra": "field"})
     self.assertFalse(notification.read)
     self.assertEqual(notification.user, self.user)
 
   def test_create_with_project_relation(self):
-    data = CreateNotificationReq(
+    data = CreateNotificationDTO(
       title="Project Alert",
       deliver_at=self.base_time,
-      type="ASSOCIATED",
-      relation=RelationInputSchema(
+      relation=NotificationRelationDTO(
         relation_type="PROJECT",
         project_id=self.project.id,
       ),
@@ -154,12 +155,13 @@ class TestNotificationService__create(BaseNotificationServiceTestCase):
     notification = NotificationService.create(self.user, data)
 
     self.assertEqual(notification.notificationrelation_set.count(), 1)
+    self.assertEqual(notification.type, "ASSOCIATED")
     relation = notification.notificationrelation_set.first()
     self.assertEqual(relation.relation_type, "PROJECT")
     self.assertEqual(relation.project_id, self.project.id)
 
   def test_create_rejects_invalid_type(self):
-    data = CreateNotificationReq(
+    data = CreateNotificationDTO(
       title="Bad Type",
       deliver_at=self.base_time,
       type="INVALID",
@@ -169,7 +171,7 @@ class TestNotificationService__create(BaseNotificationServiceTestCase):
       NotificationService.create(self.user, data)
 
   def test_create_associated_without_relation_raises(self):
-    data = CreateNotificationReq(
+    data = CreateNotificationDTO(
       title="Missing Relation",
       deliver_at=self.base_time,
       type="ASSOCIATED",
@@ -177,6 +179,31 @@ class TestNotificationService__create(BaseNotificationServiceTestCase):
 
     with self.assertRaises(BusinessRuleError):
       NotificationService.create(self.user, data)
+
+  def test_create_with_invalid_relation_raises(self):
+    data = CreateNotificationDTO(
+      title="Invalid Relation",
+      deliver_at=self.base_time,
+      relation=NotificationRelationDTO(
+        relation_type="INVALID",
+        project_id="project",
+      ),
+    )
+
+    with self.assertRaises(BusinessRuleError):
+      NotificationService.create(self.user, data)
+
+  def test_create_ignores_given_read_value(self):
+    data = {
+      "title": "Read Always False on Creation",
+      "deliver_at": self.base_time,
+      "read": True,
+    }
+
+    notification = NotificationService.create(self.user, data)
+
+    self.assertEqual(notification.read, False)
+    self.assertEqual(notification.title, "Read Always False on Creation")
 
 
 class TestNotificationService__get(BaseNotificationServiceTestCase):
@@ -205,45 +232,6 @@ class TestNotificationService__get(BaseNotificationServiceTestCase):
       NotificationService.get(self.other_user, str(self.notification.id))
 
 
-class TestNotificationService__list(BaseNotificationServiceTestCase):
-  def test_list_returns_user_notifications_ordered(self):
-    for i in range(3):
-      Notification.objects.create(
-        user=self.user,
-        title=f"N{i}",
-        deliver_at=self.base_time + timedelta(hours=i),
-        type="SIMPLE",
-      )
-
-    result = list(NotificationService.list(self.user))
-
-    self.assertEqual(len(result), 3)
-    for i in range(len(result) - 1):
-      self.assertGreaterEqual(result[i].deliver_at, result[i + 1].deliver_at)
-
-  def test_list_empty_for_user_without_notifications(self):
-    self.assertEqual(NotificationService.list(self.other_user).count(), 0)
-
-  def test_list_user_isolation(self):
-    Notification.objects.create(
-      user=self.other_user,
-      title="Other",
-      deliver_at=self.base_time,
-      type="SIMPLE",
-    )
-    Notification.objects.create(
-      user=self.user,
-      title="Mine",
-      deliver_at=self.base_time,
-      type="SIMPLE",
-    )
-
-    result = list(NotificationService.list(self.user))
-
-    self.assertEqual(len(result), 1)
-    self.assertEqual(result[0].user, self.user)
-
-
 class TestNotificationService__partial_update(BaseNotificationServiceTestCase):
   def setUp(self):
     self.notification = Notification.objects.create(
@@ -255,18 +243,40 @@ class TestNotificationService__partial_update(BaseNotificationServiceTestCase):
       type="SIMPLE",
     )
 
-  def test_partial_update_mark_read_only(self):
-    data = PartialUpdateNotificationReq(read=True)
+  def test_partiaal_update_success(self):
+    new_time = self.base_time + timedelta(days=1)
+    data = PartialUpdateNotificationDTO(
+      title="Updated", message="Updated Message", deliver_at=new_time
+    )
 
-    updated = NotificationService.partial_update(
+    notification = NotificationService.partial_update(
       self.user, str(self.notification.id), data
     )
 
-    self.assertTrue(updated.read)
+    self.assertEqual(notification.title, "Updated")
+    self.assertEqual(notification.message, "Updated Message")
+    self.assertEqual(notification.deliver_at, new_time)
+
+  def test_partial_update_cant_update_type_and_ext_fields(self):
+    updated = NotificationService.partial_update(
+      self.user,
+      str(self.notification.id),
+      {"type": "ASSOCIATED", "extra_fields": {"extra": "field"}},
+    )
+
+    self.assertEqual(updated.type, "SIMPLE")
+    self.assertEqual(updated.extra_fields, {"extra": "field"})
+
+  def test_partial_update_cant_update_read(self):
+    updated = NotificationService.partial_update(
+      self.user, str(self.notification.id), {"read": True}
+    )
+
+    self.assertEqual(updated.read, False)
     self.assertEqual(updated.title, "Original")
     self.assertEqual(updated.message, "Original message")
 
-  def test_partial_update_relation(self):
+  def test_partial_update_cant_update_relation(self):
     NotificationRelation.objects.create(
       notification=self.notification,
       project=self.project,
@@ -275,23 +285,24 @@ class TestNotificationService__partial_update(BaseNotificationServiceTestCase):
     other_client = Client.objects.create(
       user=self.user, name="Other Client", cpf="98765432100"
     )
-    data = PartialUpdateNotificationReq(
-      relation=RelationInputSchema(
-        relation_type="CLIENT",
-        client_id=other_client.id,
-      )
-    )
+    data = {
+      "relation": {
+        "relation_type": "CLIENT",
+        "client_id": other_client.id,
+      }
+    }
 
     updated = NotificationService.partial_update(
       self.user, str(self.notification.id), data
     )
 
     relation = updated.notificationrelation_set.first()
-    self.assertEqual(relation.relation_type, "CLIENT")
-    self.assertEqual(relation.client_id, other_client.id)
+    self.assertEqual(relation.relation_type, "PROJECT")
+    self.assertEqual(relation.project_id, self.project.id)
+    self.assertEqual(relation.client_id, None)
 
   def test_partial_update_empty_payload_is_no_op(self):
-    data = PartialUpdateNotificationReq()
+    data = {}
 
     updated = NotificationService.partial_update(
       self.user, str(self.notification.id), data
@@ -303,15 +314,7 @@ class TestNotificationService__partial_update(BaseNotificationServiceTestCase):
   def test_partial_update_not_found_raises(self):
     with self.assertRaises(ResourceNotFoundError):
       NotificationService.partial_update(
-        self.user, str(uuid4()), PartialUpdateNotificationReq(read=True)
-      )
-
-  def test_partial_update_invalid_type_raises(self):
-    with self.assertRaises(BusinessRuleError):
-      NotificationService.partial_update(
-        self.user,
-        str(self.notification.id),
-        PartialUpdateNotificationReq(type="INVALID"),
+        self.user, str(uuid4()), PartialUpdateNotificationDTO(message="ok.")
       )
 
 

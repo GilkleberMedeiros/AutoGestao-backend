@@ -31,10 +31,7 @@ class CreateNotificationReq(Schema):
 
   title: str
   deliver_at: datetime
-  type: str
   message: Optional[str] = None
-  read: bool = False
-  extra_fields: Optional[dict] = None
   relation: Optional[RelationInputSchema] = None
 
 
@@ -43,11 +40,7 @@ class PartialUpdateNotificationReq(Schema):
 
   title: Optional[str] = None
   message: Optional[str] = None
-  read: Optional[bool] = None
   deliver_at: Optional[datetime] = None
-  type: Optional[str] = None
-  extra_fields: Optional[dict] = None
-  relation: Optional[RelationInputSchema] = None
 
 
 class NotificationSchema(ModelSchema):
@@ -90,6 +83,6 @@ class SyncRequestSchema(Schema):
     for id_str in value:
       try:
         UUID(id_str)
-      except (ValueError, TypeError):
+      except ValueError, TypeError:
         raise ValueError(f"Invalid UUID in known_notification_ids: {id_str}")
     return value

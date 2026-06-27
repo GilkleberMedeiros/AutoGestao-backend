@@ -6,10 +6,10 @@ from django.db.models import QuerySet
 
 from apps.core.exceptions import BusinessRuleError, ResourceNotFoundError
 from apps.notifications.models import Notification, NotificationRelation
-from apps.notifications.schemas import (
-  CreateNotificationReq,
-  PartialUpdateNotificationReq,
-  RelationInputSchema,
+from apps.notifications.services.dtos import (
+  NotificationRelationDTO,
+  CreateNotificationDTO,
+  PartialUpdateNotificationDTO,
 )
 from apps.projects_and_clients.models import Client, Project, Task
 from apps.users.models import User
@@ -34,85 +34,81 @@ class NotificationService:
   SYNC_MAX_KNOWN_IDS = 10_000
 
   @staticmethod
-  def _validate_notification_type(notification_type: str) -> None:
-    if notification_type not in _VALID_NOTIFICATION_TYPES:
-      raise BusinessRuleError("Invalid notification type.")
-
-  @staticmethod
   def _validate_and_resolve_relation(
-    user: User, relation: RelationInputSchema
+    user: User, relation: NotificationRelationDTO
   ) -> dict:
-    if relation.relation_type not in _VALID_RELATION_TYPES:
+    if relation["relation_type"] not in _VALID_RELATION_TYPES:
       raise BusinessRuleError("Invalid relation type.")
 
-    relation_type = relation.relation_type
-    project = None
-    client = None
-    task = None
-
-    if relation_type == NotificationRelation.RelationType.PROJECT:
-      if not relation.project_id:
-        raise BusinessRuleError("relation_type PROJECT requires project_id.")
-      project = Project.objects.filter(id=relation.project_id, user=user).first()
-      if not project:
-        raise ResourceNotFoundError("Related project not found.")
-    elif relation_type == NotificationRelation.RelationType.CLIENT:
-      if not relation.client_id:
-        raise BusinessRuleError("relation_type CLIENT requires client_id.")
-      client = Client.objects.filter(id=relation.client_id, user=user).first()
-      if not client:
-        raise ResourceNotFoundError("Related client not found.")
-    elif relation_type == NotificationRelation.RelationType.TASK:
-      if not relation.task_id:
-        raise BusinessRuleError("relation_type TASK requires task_id.")
-      task = Task.objects.filter(id=relation.task_id, project__user=user).first()
-      if not task:
-        raise ResourceNotFoundError("Related task not found.")
-
-    return {
+    relation_type = relation["relation_type"]
+    resolved_rel = {
       "relation_type": relation_type,
-      "project": project,
-      "client": client,
-      "task": task,
+      "project": None,
+      "client": None,
+      "task": None,
     }
+
+    REL_TYPE_ID_MAP = {
+      NotificationRelation.RelationType.PROJECT: {
+        "id_field": "project_id",
+        "model": Project,
+      },
+      NotificationRelation.RelationType.CLIENT: {
+        "id_field": "client_id",
+        "model": Client,
+      },
+      NotificationRelation.RelationType.TASK: {"id_field": "task_id", "model": Task},
+    }
+
+    related_map = REL_TYPE_ID_MAP[relation_type]
+    id_field = related_map["id_field"]
+    model = related_map["model"]
+
+    related_id = relation.get(id_field, None)
+    if related_id is None:
+      raise BusinessRuleError(f"relation_type {relation_type} requires {id_field}.")
+    related_instance = model.objects.filter(id=related_id, user=user).first()
+    related_name = model.__name__.lower()
+    if not related_instance:
+      raise ResourceNotFoundError(f"Related {related_name} not found.")
+    resolved_rel[related_name] = related_instance
+
+    return resolved_rel
 
   @staticmethod
   def _create_relation(
-    notification: Notification, relation: RelationInputSchema, user: User
+    notification: Notification, relation: NotificationRelationDTO, user: User
   ) -> None:
     resolved = NotificationService._validate_and_resolve_relation(user, relation)
     NotificationRelation.objects.create(notification=notification, **resolved)
 
   @staticmethod
-  def _update_relation(
-    notification: Notification, relation: RelationInputSchema, user: User
-  ) -> None:
-    resolved = NotificationService._validate_and_resolve_relation(user, relation)
-    NotificationRelation.objects.update_or_create(
-      notification=notification,
-      defaults=resolved,
-    )
-
-  @staticmethod
   @transaction.atomic
-  def create(user: User, data: CreateNotificationReq) -> Notification:
-    NotificationService._validate_notification_type(data.type)
+  def create(user: User, data: CreateNotificationDTO) -> Notification:
+    notif_types = Notification.NotificationType
+    relation = data.pop("relation", None)
 
-    if data.type in _TYPES_REQUIRING_RELATION and not data.relation:
+    if not data.get("type", None):
+      data["type"] = notif_types.SIMPLE if not relation else notif_types.ASSOCIATED
+
+    if data["type"] not in _VALID_NOTIFICATION_TYPES:
+      raise BusinessRuleError("Invalid notification type.")
+
+    if data["type"] in _TYPES_REQUIRING_RELATION and not relation:
       raise BusinessRuleError("Notification type requires relation details.")
 
     notification = Notification.objects.create(
       user=user,
-      title=data.title,
-      message=data.message,
-      read=data.read,
-      deliver_at=data.deliver_at,
-      type=data.type,
-      extra_fields=data.extra_fields,
+      title=data["title"],
+      message=data.get("message", None),
+      read=False,
+      deliver_at=data["deliver_at"],
+      type=data["type"],
+      extra_fields=data.get("extra_fields", None),
     )
 
-    if data.relation:
-      NotificationService._create_relation(notification, data.relation, user)
+    if relation:
+      NotificationService._create_relation(notification, relation, user)
 
     return Notification.objects.prefetch_related("notificationrelation_set").get(
       pk=notification.pk
@@ -126,41 +122,27 @@ class NotificationService:
     return notification
 
   @staticmethod
-  def list(user: User) -> QuerySet:
-    return (
-      Notification.objects.filter(user=user)
-      .prefetch_related("notificationrelation_set")
-      .order_by("-deliver_at", "id")
-    )
-
-  @staticmethod
   @transaction.atomic
   def partial_update(
-    user: User, notification_id: str, data: PartialUpdateNotificationReq
+    user: User, notification_id: str, data: PartialUpdateNotificationDTO
   ) -> Notification:
     notification = NotificationService.get(user, notification_id)
-    update_data = data.model_dump(exclude_unset=True)
+    update_data = data
+
+    # Clean data from fields that shouldn't be updated
+    update_data.pop("type", None)
+    update_data.pop("read", None)
+    update_data.pop("relation", None)
+    update_data.pop("extraa_fields", None)
 
     if not update_data:
       return notification
-
-    relation_provided = "relation" in update_data
-    update_data.pop("relation", None)
-
-    if "type" in update_data:
-      NotificationService._validate_notification_type(update_data["type"])
 
     for field, value in update_data.items():
       setattr(notification, field, value)
 
     if update_data:
       notification.save()
-
-    if relation_provided:
-      if data.relation is None:
-        notification.notificationrelation_set.all().delete()
-      else:
-        NotificationService._update_relation(notification, data.relation, user)
 
     notification.refresh_from_db()
     return notification
