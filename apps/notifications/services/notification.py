@@ -133,7 +133,7 @@ class NotificationService:
     update_data.pop("type", None)
     update_data.pop("read", None)
     update_data.pop("relation", None)
-    update_data.pop("extraa_fields", None)
+    update_data.pop("extra_fields", None)
 
     if not update_data:
       return notification
