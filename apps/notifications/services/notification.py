@@ -154,6 +154,15 @@ class NotificationService:
     return {"success": True}
 
   @staticmethod
+  def read(user: User, notification_id: str) -> Notification:
+    notification = NotificationService.get(user, notification_id)
+    notification.read = True
+    notification.save()
+
+    notification.refresh_from_db()
+    return notification
+
+  @staticmethod
   def sync(user: User, known_ids: List[UUID] = []) -> QuerySet:
     """
     Synchronize notifications for a client by filtering out already-known IDs.

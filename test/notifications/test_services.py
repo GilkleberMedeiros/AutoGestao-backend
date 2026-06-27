@@ -365,3 +365,36 @@ class TestNotificationService__delete(BaseNotificationServiceTestCase):
       NotificationService.delete(self.other_user, str(notification.id))
 
     self.assertTrue(Notification.objects.filter(id=notification.id).exists())
+
+
+class TestNotificationService__read(BaseNotificationServiceTestCase):
+  def test_read_success(self):
+    notification = Notification.objects.create(
+      user=self.user,
+      title="Read Me",
+      deliver_at=self.base_time,
+      type="SIMPLE",
+    )
+
+    NotificationService.read(self.user, str(notification.id))
+
+    notification.refresh_from_db()
+    self.assertEqual(notification.read, True)
+
+  def test_read_not_found_raises(self):
+    with self.assertRaises(ResourceNotFoundError):
+      NotificationService.read(self.user, str(uuid4()))
+
+  def test_read_other_user_raises(self):
+    notification = Notification.objects.create(
+      user=self.user,
+      title="Protected",
+      deliver_at=self.base_time,
+      type="SIMPLE",
+    )
+
+    with self.assertRaises(ResourceNotFoundError):
+      NotificationService.read(self.other_user, str(notification.id))
+
+    notification.refresh_from_db()
+    self.assertEqual(notification.read, False)
