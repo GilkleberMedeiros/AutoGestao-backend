@@ -31,7 +31,7 @@ class APITestCase(TestCase):
   def setUp(self):
     super().setUp()
 
-    self.client = APIClient(path_prefix=self.URL)
+    self.client: APIClient = APIClient(path_prefix=self.URL)
 
 
 @override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
