@@ -5,22 +5,16 @@ from uuid import UUID
 from ninja import Schema, ModelSchema, Field
 from pydantic import field_validator
 
-from apps.notifications.models import Notification
+from apps.notifications.models import Notification, NotificationRelation
 
 
-class RelationSchema(Schema):
-  """Represents optional domain entity association for a notification."""
+class RelationSchema(ModelSchema):
+  """Representation of a notification relation, used in request and response models."""
 
-  relation_type: Optional[str] = None
-  project_id: Optional[UUID] = None
-  client_id: Optional[UUID] = None
-  task_id: Optional[UUID] = None
+  class Meta:
+    model = NotificationRelation
+    fields = ["relation_type"]
 
-
-class RelationInputSchema(Schema):
-  """Input payload for notification entity association on create/update."""
-
-  relation_type: str
   project_id: Optional[UUID] = None
   client_id: Optional[UUID] = None
   task_id: Optional[UUID] = None
@@ -32,7 +26,7 @@ class CreateNotificationReq(Schema):
   title: str
   deliver_at: datetime
   message: Optional[str] = None
-  relation: Optional[RelationInputSchema] = None
+  relation: Optional[RelationSchema] = None
 
 
 class PartialUpdateNotificationReq(Schema):
